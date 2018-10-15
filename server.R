@@ -1,3 +1,15 @@
+library(ggplot2)
+library(dplyr)
+
+facet.names <- list('AmmoniumSulfate'="800 uM Ammonium Sulfate [n=1111]",
+                    'Glutamine'="800 uM Glutamine [n=1644]",
+                    'Proline'="800 uM Proline [n=853]",
+                    'Urea'='800 uM Urea [n=992]')
+
+labeller <- function(variable, value){
+  return(facet.names[value])
+}
+
 server <- function(input, output) {
   
   # Load the defaults the first time the server object is created
@@ -11,7 +23,7 @@ server <- function(input, output) {
   # Load new data if needed
   reactive({
     if(input$dataset != active.data) {
-      shiny.data <- read.table(file.path(DATA.PATH, META.DATA[META.DATA$Display == input$dataset, 'File']))
+      shiny.data <- read.table(gzfile(file.path(DATA.PATH, META.DATA[META.DATA$Display == input$dataset, 'File'])))
       gene.map <- read.table(file.path(DATA.PATH, META.DATA[META.DATA$Display == input$dataset, 'GeneFile'], col.names = c('Systemic', 'Common'), stringsAsFactors = FALSE))
       allowed.names <- as.vector(t(gene.map))
       active.data <- input$dataset
@@ -109,7 +121,7 @@ server <- function(input, output) {
     plot.title.str <- paste(gsub("\\.", "-", select.gene), plot.title.str, "Expression\n")
     
     # Draw plots for the data
-    pl <- ggplot(select.data, aes_q(quote(factor(Gene_Group)), y.quote)) +
+    pl <- ggplot(select.data, aes(Gene_Group, !!y.quote)) +
       labs(title=plot.title.str, x="Genotype", y=y.text, color="Genotype") +
       geom_point(aes(color=factor(Gene_Group)), size=3, alpha=0.75) +
       stat_summary(fun.y='mean', size=20, geom='point', shape='-') +

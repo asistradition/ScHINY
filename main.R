@@ -1,6 +1,4 @@
 library(shiny)
-library(ggplot2)
-library(dplyr)
 
 SHINY.TITLE <<- "Single-Cell Yeast Gene Expression"
 
@@ -35,13 +33,17 @@ YAXIS.SHOW <<- 'Show'
 YAXIS.HIDE <<- 'Hide'
 
 # Data Set Loading Information
-META.DATA <<- read.table('metadata.csv', col.names = c('Display', 'File', 'GeneFile'), stringsAsFactors = FALSE, sep=",")
+META.DATA <<- read.table('metadata.csv', header=TRUE, stringsAsFactors = FALSE, sep=",")
 DATA.PATH <<- 'data'
-DATA.DEFAULT <<- 'v1 [09/21/2018]'
+DATA.DEFAULT <<- META.DATA[META.DATA$Default,]$Display
 DATA.LABEL <<- 'Data Set'
 
 # Load the default data set
-DEFAULT.SHINY.DATA <<- read.table(file.path(DATA.PATH, META.DATA[META.DATA$Display == DATA.DEFAULT , 'File']))
+DEFAULT.FILE.PATH <<- file.path(DATA.PATH, META.DATA[META.DATA$Display == DATA.DEFAULT , 'File'])
+if(META.DATA[META.DATA$Default,]$Gzipped) {
+  DEFAULT.FILE.PATH <<- gzfile(DEFAULT.FILE.PATH)
+}
+DEFAULT.SHINY.DATA <<- read.table(DEFAULT.FILE.PATH)
 DEFAULT.GENE.MAP <<- read.table(file.path(DATA.PATH, META.DATA[META.DATA$Display == DATA.DEFAULT, 'GeneFile']), col.names = c('Systemic', 'Common'), stringsAsFactors = FALSE)
 DEFAULT.ALLOWED.NAMES <<- as.vector(t(DEFAULT.GENE.MAP))
 
