@@ -1,20 +1,30 @@
 library(ggplot2)
 library(dplyr)
 
-facet.names <- list('AmmoniumSulfate'="800 uM Ammonium Sulfate [n=1111]",
-                    'Glutamine'="800 uM Glutamine [n=1644]",
-                    'Proline'="800 uM Proline [n=853]",
-                    'Urea'='800 uM Urea [n=992]')
+# Data Set Loading Information
+META.DATA <<- read.table('metadata.csv', header=TRUE, stringsAsFactors = FALSE, sep=",")
+DATA.PATH <<- 'data'
+DATA.DEFAULT <<- META.DATA[META.DATA$Default,]$Display
+DATA.LABEL <<- 'Data Set'
 
-labeller <- function(variable, value){
-  return(facet.names[value])
+# Load the default data set
+DEFAULT.FILE.PATH <<- file.path(DATA.PATH, META.DATA[META.DATA$Display == DATA.DEFAULT , 'File'])
+DEFAULT.GENE.MAP <<- read.table(file.path(DATA.PATH, META.DATA[META.DATA$Display == DATA.DEFAULT, 'GeneFile']), col.names = c('Systemic', 'Common'), stringsAsFactors = FALSE)
+DEFAULT.ALLOWED.NAMES <<- as.vector(t(DEFAULT.GENE.MAP))
+
+# Condition metadata
+conditions <- read.table('conditions.csv', header=TRUE, stringsAsFactors=FALSE, sep=",")
+CONDITION.LABELS <<- structure(as.character(conditions$PlotName), names=conditions$DataColumn)
+
+relabel.facets <- function(string.label) {
+  return(CONDITION.LABELS[string.label])
 }
 
 server <- function(input, output) {
   
   # Load the defaults the first time the server object is created
   if(!exists('shiny.data')) {
-    shiny.data <- DEFAULT.SHINY.DATA
+    shiny.data <- read.table(gzfile(DEFAULT.FILE.PATH))
     active.data <- DATA.DEFAULT
     allowed.names <- DEFAULT.ALLOWED.NAMES
     gene.map <- DEFAULT.GENE.MAP
@@ -86,17 +96,18 @@ server <- function(input, output) {
     
     # Filter the data to just what's needed for these plots
     shiny.data %>%
-      filter(Gene == select.gene) %>%
-      filter(Condition %in% input$conditions) -> select.data
-    
+        select(!!select.gene, Condition, Gene_Group, Genotype, Total_UMI, Num_Cells) %>%
+        filter(Condition %in% input$conditions) %>%
+        rename(Gene = !!select.gene) -> select.data
+
     # Set stuff for the data scaling
     y.axis.scale <- input$yaxis
     if(y.axis.scale == YAXIS.UMI.COUNT) {
-      y.quote = quote(Count)
+      select.data$Gene = select.data$Gene / select.data$Num_Cells
       y.text = YAXIS.UMI.COUNT.LABEL
     }
     else if (y.axis.scale == YAXIS.LIB.NORM | y.axis.scale ==  YAXIS.WT.NORM) {
-      y.quote = quote(LibraryNormalized)
+      select.data$Gene <- select.data$Gene / select.data$Total_UMI * 100
       y.text = YAXIS.LIB.NORM.LABEL
     }
     
@@ -104,14 +115,13 @@ server <- function(input, output) {
     select.data %>%
       filter(Gene_Group %in% "WT") %>%
       group_by(Condition) %>%
-      summarize(wt=mean(!!y.quote)) -> wt_mean
+      summarize(wt=mean(Gene)) -> wt_mean
+    select.data <- merge(select.data, wt_mean, by='Condition')
     
     # Normalize data to WT if that option is selected
     if (input$yaxis == YAXIS.WT.NORM) {
-      y.quote = quote(FoldChange)
       y.text = YAXIS.WT.NORM.LABEL
-      select.data <- merge(select.data, wt_mean, by='Condition')
-      select.data$FoldChange <- select.data$LibraryNormalized / select.data$wt
+      select.data$Gene <- select.data$Gene / select.data$wt
       select.data[is.na(select.data)] = NaN
       wt_mean$wt = 1
     }
@@ -121,7 +131,7 @@ server <- function(input, output) {
     plot.title.str <- paste(gsub("\\.", "-", select.gene), plot.title.str, "Expression\n")
     
     # Draw plots for the data
-    pl <- ggplot(select.data, aes(Gene_Group, !!y.quote)) +
+    pl <- ggplot(select.data, aes(Gene_Group, Gene)) +
       labs(title=plot.title.str, x="Genotype", y=y.text, color="Genotype") +
       geom_point(aes(color=factor(Gene_Group)), size=3, alpha=0.75) +
       stat_summary(fun.y='mean', size=20, geom='point', shape='-') +
@@ -138,10 +148,10 @@ server <- function(input, output) {
     
     # Facet_wrap on condition with desired scaling
     if (input$yaxislim == YAXIS.FIXED){
-      pl <- pl + facet_wrap(~Condition, ncol=1, scales='fixed')
+      pl <- pl + facet_wrap(~Condition, ncol=2, scales='fixed', labeller = labeller(Condition = relabel.facets))
     }
     else if (input$yaxislim == YAXIS.FREE){
-      pl <- pl + facet_wrap(~Condition, ncol=1, scales='free')
+      pl <- pl + facet_wrap(~Condition, ncol=2, scales='free', labeller = labeller(Condition = relabel.facets))
     }
     
     # Return the plot
