@@ -13,7 +13,7 @@ DEFAULT.GENE.MAP <<- read.table(file.path(DATA.PATH, META.DATA[META.DATA$Display
 DEFAULT.ALLOWED.NAMES <<- as.vector(t(DEFAULT.GENE.MAP))
 
 # Condition metadata
-conditions <- read.table('conditions.csv', header=TRUE, stringsAsFactors=FALSE, sep=",")
+conditions <<- read.table('conditions.csv', header=TRUE, stringsAsFactors=FALSE, sep=",")
 CONDITION.LABELS <<- structure(as.character(conditions$PlotName), names=conditions$DataColumn)
 
 relabel.facets <- function(string.label) {
@@ -86,7 +86,7 @@ server <- function(input, output) {
     checkboxGroupInput(inputId = 'conditions',
                        label = 'Conditions',
                        choices = levels(shiny.data$Condition),
-                       selected = levels(shiny.data$Condition))
+                       selected = conditions[conditions$Default,]$DataColumn)
   })
   
   # Render the plot

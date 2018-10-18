@@ -1,48 +1,38 @@
 library(dplyr)
 library(reshape2)
 
-IN.FILES <- c('ScUTR_090818_Glutamine_BCDEL1_filtered_bulk.tsv', 'ScUTR_090818_Proline_BCDEL1_filtered_bulk.tsv', 'ScUTR_100118_AS_BCDEL1_filtered_bulk.tsv', 'ScUTR_100118_Urea_BCDEL1_filtered_bulk.tsv')
-IN.CONDITIONS <- c('Glutamine', 'Proline', 'AmmoniumSulfate', 'Urea')
+IN.FILES <- c('ScUTR_090818_Glutamine_BCDEL1_filtered_bulk.tsv', 'ScUTR_090818_Proline_BCDEL1_filtered_bulk.tsv', 'ScUTR_100118_AS_BCDEL1_filtered_bulk.tsv', 'ScUTR_100118_Urea_BCDEL1_filtered_bulk.tsv', 'ScUTR_101118_YPD_BCDEL1_filtered_bulk.tsv', 'ScUTR_101118_YPD_Rapa_BCDEL1_filtered_bulk.tsv', 'ScUTR_101118_CStarve_filtered_bulk.tsv')
+IN.CONDITIONS <- c('Glutamine', 'Proline', 'AmmoniumSulfate', 'Urea', 'YPD', 'YPDRapa', 'CStarve')
 GENE.LIST <- read.table('genes.tsv')$V1
-MELT.VARS <- c('Condition', 'Gene_Group', 'Num_Cells', 'Total_UMI', 'Mean_UMI', 'Genotype')
 GENE.GROUPS <- list(c(rep('WT', 6), rep('dal80', 6), rep('dal81', 6), rep('dal82', 6), rep('gat1', 6), rep('gcn4', 5), rep('gln3', 6), rep('gzf3', 6), rep('rtg1', 6), rep('rtg3', 6), rep('stp1', 6), rep('stp2', 6)),
                     c(rep('WT', 6), rep('dal80', 6), rep('dal81', 6), rep('dal82', 6), rep('gat1', 6), rep('gcn4', 6), rep('gln3', 6), rep('gzf3', 6), rep('rtg1', 6), rep('rtg3', 6), rep('stp1', 6), rep('stp2', 6)),
                     c(rep('WT', 6), rep('dal80', 6), rep('dal81', 6), rep('dal82', 6), rep('gat1', 6), rep('gcn4', 5), rep('gln3', 6), rep('gzf3', 6), rep('rtg1', 6), rep('rtg3', 6), rep('stp1', 6), rep('stp2', 6)),
-                    c(rep('WT', 6), rep('dal80', 6), rep('dal81', 6), rep('dal82', 6), rep('gat1', 6), rep('gcn4', 6), rep('gln3', 6), rep('gzf3', 6), rep('rtg1', 6), rep('rtg3', 6), rep('stp1', 6), rep('stp2', 6))
-                    )
-names(GENE.GROUPS) <- c('Glutamine', 'Proline', 'AmmoniumSulfate', 'Urea')
+                    c(rep('WT', 6), rep('dal80', 6), rep('dal81', 6), rep('dal82', 6), rep('gat1', 6), rep('gcn4', 6), rep('gln3', 6), rep('gzf3', 6), rep('rtg1', 6), rep('rtg3', 6), rep('stp1', 6), rep('stp2', 6)),
+                    c(rep('WT', 6), rep('dal80', 6), rep('dal81', 6), rep('dal82', 6), rep('gat1', 6), rep('gcn4', 6), rep('gln3', 6), rep('gzf3', 6), rep('rtg1', 6), rep('rtg3', 6), rep('stp1', 6), rep('stp2', 4)),
+                    c(rep('WT', 6), rep('dal80', 6), rep('dal81', 6), rep('dal82', 6), rep('gat1', 6), rep('gcn4', 6), rep('gln3', 6), rep('gzf3', 6), rep('rtg1', 6), rep('rtg3', 6), rep('stp1', 6), rep('stp2', 4)),
+                    c(rep('WT', 6), rep('dal80', 6), rep('dal81', 6), rep('dal82', 6), rep('gat1', 6), rep('gcn4', 6), rep('gln3', 6), rep('gzf3', 6), rep('rtg1', 6), rep('rtg3', 6), rep('stp1', 6), rep('stp2', 4)))
+names(GENE.GROUPS) <- IN.CONDITIONS
 
-melted <- data.frame(Condition = character(), 
-                     Gene_Group = factor(), 
-                     Num_Cells = integer(), 
-                     Total_UMI = integer(), 
-                     Mean_UMI = double(),
-                     Genotype = factor(), 
-                     Gene = factor(), 
-                     value = integer())
+headers <- read.table(IN.FILES[1], nrows = 1, header = FALSE, sep ='\t', stringsAsFactors = FALSE)
+headers[,ncol(headers)+1] = "Condition"
+headers[,ncol(headers)+1] = "Mean_UMI"
+headers[,ncol(headers)+1] = "Total_UMI"
+headers[,ncol(headers)+1] = "Gene_Group"
+all_data <- data.frame(matrix(ncol = ncol(headers), nrow = 0))
+colnames(all_data) <- as.vector(headers)
 
 for (i in 1:length(IN.FILES)){
   data <- read.table(IN.FILES[i], header=TRUE)
   
   data %>%
-    subset(select=-c(Genotype)) %>%
+    subset(select=-c(Genotype, Num_Cells)) %>%
     rowSums -> data$Total_UMI
   
   data$Mean_UMI <- data$Total_UMI / data$Num_Cells
   data$Condition <- as.factor(IN.CONDITIONS[i])
   data$Gene_Group <- as.factor(unlist(GENE.GROUPS[IN.CONDITIONS[i]]))
   
-  data %>%
-    melt(id.vars=MELT.VARS, variable.name='Gene') -> melt_data
-  
-  melted <- rbind(melted, melt_data)
+  all_data <- rbind(all_data, data)
 }
 
-melted$LibraryNormalized <- melted$value / melted$Total_UMI * 100
-melted$Count <- melted$value / melted$Num_Cells
-melted$Num_Cells <- NULL
-melted$Total_UMI <- NULL
-melted$Mean_UMI <- NULL
-melted$Genotype <- NULL
-melted$value <- NULL
-write.table(melted, file="ScHINY_Data.tsv", sep="\t")
+write.table(all_data, file="ScHINY_Data.tsv", sep="\t")
