@@ -20,7 +20,7 @@ relabel.facets <- function(string.label) {
   return(CONDITION.LABELS[string.label])
 }
 
-server <- function(input, output) {
+server <- function(input, output, session) {
   
   # Load the defaults the first time the server object is created
   if(!exists('shiny.data')) {
@@ -28,6 +28,7 @@ server <- function(input, output) {
     active.data <- DATA.DEFAULT
     allowed.names <- DEFAULT.ALLOWED.NAMES
     gene.map <- DEFAULT.GENE.MAP
+    do.http.check <- TRUE
   }
   
   # Load new data if needed
@@ -89,72 +90,115 @@ server <- function(input, output) {
                        selected = conditions[conditions$Default,]$DataColumn)
   })
   
-  # Render the plot
-  output$plots <- renderPlot({
-    # Validate gene name
-    select.gene <- validate.gene()
+  # Set gene from default or HTTP
+  output$gene <- renderUI({
     
-    # Filter the data to just what's needed for these plots
-    shiny.data %>%
-        select(!!select.gene, Condition, Gene_Group, Genotype, Total_UMI, Num_Cells) %>%
-        filter(Condition %in% input$conditions) %>%
-        rename(Gene = !!select.gene) -> select.data
-
-    # Set stuff for the data scaling
-    y.axis.scale <- input$yaxis
-    if(y.axis.scale == YAXIS.UMI.COUNT) {
-      select.data$Gene = select.data$Gene / select.data$Num_Cells
-      y.text = YAXIS.UMI.COUNT.LABEL
+    if(do.http.check && exists('session$clientData$gene')) {
+      select.gene <- toupper(session$clientData$gene)
+      if(select.gene %in% allowed.names) {
+        if(toupper(input$gene) %in% gene.map$Common) {
+          select.gene <- toString(gene.map[gene.map$Common == select.gene,]['Systemic'])
+        }
+      }
+      else {
+        select.gene <- GENE.DEFAULT
+      }
+      do.http.check <<- FALSE
     }
-    else if (y.axis.scale == YAXIS.LIB.NORM | y.axis.scale ==  YAXIS.WT.NORM) {
-      select.data$Gene <- select.data$Gene / select.data$Total_UMI * 100
-      y.text = YAXIS.LIB.NORM.LABEL
+    else {
+      select.gene <- GENE.DEFAULT
     }
     
-    # Calculate the WT mean
-    select.data %>%
-      filter(Gene_Group %in% "WT") %>%
-      group_by(Condition) %>%
-      summarize(wt=mean(Gene)) -> wt_mean
-    select.data <- merge(select.data, wt_mean, by='Condition')
-    
-    # Normalize data to WT if that option is selected
-    if (input$yaxis == YAXIS.WT.NORM) {
-      y.text = YAXIS.WT.NORM.LABEL
-      select.data$Gene <- select.data$Gene / select.data$wt
-      select.data[is.na(select.data)] = NaN
-      wt_mean$wt = 1
-    }
-    
-    # Generate a title line with the common and systemic names
-    plot.title.str <- paste("(", gene.map[gene.map$Systemic == gsub("\\.", "-", select.gene), 'Common'], ")", sep="")
-    plot.title.str <- paste(gsub("\\.", "-", select.gene), plot.title.str, "Expression\n")
-    
-    # Draw plots for the data
-    pl <- ggplot(select.data, aes(Gene_Group, Gene)) +
-      labs(title=plot.title.str, x="Genotype", y=y.text, color="Genotype") +
-      geom_point(aes(color=factor(Gene_Group)), size=3, alpha=0.75) +
-      stat_summary(fun.y='mean', size=20, geom='point', shape='-') +
-      theme_bw() + 
-      theme(axis.text.x = element_text(size = 12, angle=90), axis.title.x = element_text(size = 14),
-            axis.text.y = element_text(size = 12), axis.title.y = element_text(size = 14),
-            legend.text = element_text(size = 12), legend.title = element_text(size = 14, face = 'bold'),
-            plot.title = element_text(size = 16, face = "bold", hjust=0.5)) +
-      
-    # Draw a dashed line onto the plots at the WT mean if that option is selected
-    if (input$wtline == YAXIS.SHOW){
-      pl <- geom_hline(data = wt_mean, aes(yintercept=wt), linetype='dashed', size=0.25)
-    }
-    
-    # Facet_wrap on condition with desired scaling
-    if (input$yaxislim == YAXIS.FIXED){
-      pl <- pl + facet_wrap(~Condition, ncol=2, scales='fixed', labeller = labeller(Condition = relabel.facets))
-    }
-    else if (input$yaxislim == YAXIS.FREE){
-      pl <- pl + facet_wrap(~Condition, ncol=2, scales='free', labeller = labeller(Condition = relabel.facets))
-    }
-    
-    # Return the plot
-    pl
+    textInput(inputId = 'gene',
+              label = GENE.LABEL,
+              value = select.gene)
   })
+  
+  output$plots <- renderText({
+      cnames <- names(cdata)
+      
+      allvalues <- lapply(cnames, function(name) {
+        paste(name, cdata[[name]], sep = " = ")
+      })
+      paste(allvalues, collapse = "\n")
+    })
+  
+  output$plots <- renderText({
+    cdata <- session$clientData
+    cnames <- names(cdata)
+    
+    allvalues <- lapply(cnames, function(name) {
+      paste(name, cdata[[name]], sep = " = ")
+    })
+    paste(allvalues, collapse = "\n")
+  })
+  
+  # # Render the plot
+  # output$plots <- renderPlot({
+  #   # Validate gene name
+  #   select.gene <- validate.gene()
+  #   
+  #   # Filter the data to just what's needed for these plots
+  #   shiny.data %>%
+  #       select(!!select.gene, Condition, Gene_Group, Genotype, Total_UMI, Num_Cells) %>%
+  #       filter(Condition %in% input$conditions) %>%
+  #       rename(Gene = !!select.gene) -> select.data
+  # 
+  #   # Set stuff for the data scaling
+  #   y.axis.scale <- input$yaxis
+  #   if(y.axis.scale == YAXIS.UMI.COUNT) {
+  #     select.data$Gene = select.data$Gene / select.data$Num_Cells
+  #     y.text = YAXIS.UMI.COUNT.LABEL
+  #   }
+  #   else if (y.axis.scale == YAXIS.LIB.NORM | y.axis.scale ==  YAXIS.WT.NORM) {
+  #     select.data$Gene <- select.data$Gene / select.data$Total_UMI * 100
+  #     y.text = YAXIS.LIB.NORM.LABEL
+  #   }
+  #   
+  #   # Calculate the WT mean
+  #   select.data %>%
+  #     filter(Gene_Group %in% "WT") %>%
+  #     group_by(Condition) %>%
+  #     summarize(wt=mean(Gene)) -> wt_mean
+  #   select.data <- merge(select.data, wt_mean, by='Condition')
+  #   
+  #   # Normalize data to WT if that option is selected
+  #   if (input$yaxis == YAXIS.WT.NORM) {
+  #     y.text = YAXIS.WT.NORM.LABEL
+  #     select.data$Gene <- select.data$Gene / select.data$wt
+  #     select.data[is.na(select.data)] = NaN
+  #     wt_mean$wt = 1
+  #   }
+  #   
+  #   # Generate a title line with the common and systemic names
+  #   plot.title.str <- paste("(", gene.map[gene.map$Systemic == gsub("\\.", "-", select.gene), 'Common'], ")", sep="")
+  #   plot.title.str <- paste(gsub("\\.", "-", select.gene), plot.title.str, "Expression\n")
+  #   
+  #   # Draw plots for the data
+  #   pl <- ggplot(select.data, aes(Gene_Group, Gene)) +
+  #     labs(title=plot.title.str, x="Genotype", y=y.text, color="Genotype") +
+  #     geom_point(aes(color=factor(Gene_Group)), size=3, alpha=0.75) +
+  #     stat_summary(fun.y='mean', size=20, geom='point', shape='-') +
+  #     theme_bw() + 
+  #     theme(axis.text.x = element_text(size = 12, angle=90), axis.title.x = element_text(size = 14),
+  #           axis.text.y = element_text(size = 12), axis.title.y = element_text(size = 14),
+  #           legend.text = element_text(size = 12), legend.title = element_text(size = 14, face = 'bold'),
+  #           plot.title = element_text(size = 16, face = "bold", hjust=0.5)) +
+  #     
+  #   # Draw a dashed line onto the plots at the WT mean if that option is selected
+  #   if (input$wtline == YAXIS.SHOW){
+  #     pl <- geom_hline(data = wt_mean, aes(yintercept=wt), linetype='dashed', size=0.25)
+  #   }
+  #   
+  #   # Facet_wrap on condition with desired scaling
+  #   if (input$yaxislim == YAXIS.FIXED){
+  #     pl <- pl + facet_wrap(~Condition, ncol=2, scales='fixed', labeller = labeller(Condition = relabel.facets))
+  #   }
+  #   else if (input$yaxislim == YAXIS.FREE){
+  #     pl <- pl + facet_wrap(~Condition, ncol=2, scales='free', labeller = labeller(Condition = relabel.facets))
+  #   }
+  #   
+  #   # Return the plot
+  #   pl
+  # })
 }

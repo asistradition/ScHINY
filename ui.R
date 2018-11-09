@@ -41,9 +41,7 @@ ui <- fluidPage(
   titlePanel(SHINY.TITLE),
   sidebarLayout(
     sidebarPanel(
-      textInput(inputId = 'gene',
-                label = GENE.LABEL,
-                value = GENE.DEFAULT),
+      uiOutput('gene'),
       uiOutput('conditions'),
       selectInput(inputId = 'yaxis',
                   label = YAXIS.SCALING.LABEL,
@@ -64,7 +62,8 @@ ui <- fluidPage(
                   selected = DATA.DEFAULT)
     ),
     mainPanel(
-      plotOutput(outputId = 'plots', height = '800')
+      verbatimTextOutput('plots')
+     # plotOutput(outputId = 'plots', height = '800')
     )
   )
 )
