@@ -1,44 +1,47 @@
 library(ggplot2)
 library(dplyr)
 
-# Data Set Loading Information
-META.DATA <<- read.table('metadata.csv', header=TRUE, stringsAsFactors = FALSE, sep=",")
-DATA.PATH <<- 'data'
-DATA.DEFAULT <<- META.DATA[META.DATA$Default,]$Display
-DATA.LABEL <<- 'Data Set'
-
-# Load the default data set
-DEFAULT.FILE.PATH <<- file.path(DATA.PATH, META.DATA[META.DATA$Display == DATA.DEFAULT , 'File'])
-DEFAULT.GENE.MAP <<- read.table(file.path(DATA.PATH, META.DATA[META.DATA$Display == DATA.DEFAULT, 'GeneFile']), col.names = c('Systemic', 'Common'), stringsAsFactors = FALSE)
-DEFAULT.ALLOWED.NAMES <<- as.vector(t(DEFAULT.GENE.MAP))
+# Load the gene names that are in the data set
+GENE.MAP <<- read.table('20181001_genes.tsv', col.names = c('Systemic', 'Common'), stringsAsFactors = FALSE)
+ALLOWED.NAMES <<- as.vector(t(GENE.MAP))
 
 # Condition metadata
-conditions <<- read.table('conditions.csv', header=TRUE, stringsAsFactors=FALSE, sep=",")
-CONDITION.LABELS <<- structure(as.character(conditions$PlotName), names=conditions$DataColumn)
+CONDITIONS <<- read.table('conditions.csv', header=TRUE, stringsAsFactors=FALSE, sep=",")
+CONDITION.LABELS <<- structure(as.character(CONDITIONS$PlotName), names=CONDITIONS$DataColumn)
+RELABEL.FACETS <<- function(string.label) {return(CONDITION.LABELS[string.label])}
 
-relabel.facets <- function(string.label) {
-  return(CONDITION.LABELS[string.label])
+# Load the figure plotting functions
+source('figure1_expression_summary.R')
+source('figure2_umap.R')
+source('figure4_expression_ridgeline.R')
+
+plot_null <- function(meta_data, gene, input, validator = NULL) {}
+sidebar_null <- function() {list()}
+
+get_sidebar <- function(data_set) {
+  if (is.null(data_set)) {sidebar_null}
+  else if (data_set == "Expression Summary") {sidebar_expression_summary}
+  else if (data_set == "Figure 2 - UMAP") {sidebar_umap}
+  else if (data_set == "Figure 4 - Expression") {sidebar_expression_ridge}
+  else {sidebar_null}
 }
+
+get_plotter <- function(data_set) {
+  if (is.null(data_set)) {plot_null}
+  else if (data_set == "Expression Summary") {plot_expression_summary}
+  else if (data_set == "Figure 2 - UMAP") {plot_umap}
+  else if (data_set == "Figure 4 - Expression") {plot_expression_ridge}
+  else {plot_null}
+}
+
+default.data <- read.table(file.path(META.DATA[META.DATA$Default,]$Path, META.DATA[META.DATA$Default,]$MetaData))
 
 server <- function(input, output) {
   
-  # Load the defaults the first time the server object is created
-  if(!exists('shiny.data')) {
-    shiny.data <- read.table(gzfile(DEFAULT.FILE.PATH))
-    active.data <- DATA.DEFAULT
-    allowed.names <- DEFAULT.ALLOWED.NAMES
-    gene.map <- DEFAULT.GENE.MAP
-  }
+  shiny.data <- default.data
+  active.data <- reactiveVal(DATA.DEFAULT)
   
-  # Load new data if needed
-  reactive({
-    if(input$dataset != active.data) {
-      shiny.data <- read.table(gzfile(file.path(DATA.PATH, META.DATA[META.DATA$Display == input$dataset, 'File'])))
-      gene.map <- read.table(file.path(DATA.PATH, META.DATA[META.DATA$Display == input$dataset, 'GeneFile'], col.names = c('Systemic', 'Common'), stringsAsFactors = FALSE))
-      allowed.names <- as.vector(t(gene.map))
-      active.data <- input$dataset
-    }
-  })
+  output$ExpPanel <- renderUI({get_sidebar(active.data())()})
   
   # Validate the gene input
   # Convert it to the shiny.data keys if it's in the gene map
@@ -47,7 +50,7 @@ server <- function(input, output) {
     
     # Get the input string and figure out which genes it could be matching
     select.gene <- toupper(input$gene)
-    could.be <- allowed.names[startsWith(allowed.names, select.gene)]
+    could.be <- ALLOWED.NAMES[startsWith(ALLOWED.NAMES, select.gene)]
     
     # If the list of matching genes is too long, create an error message with the number of genes
     # Otherwise, number of genes and gene names
@@ -61,7 +64,7 @@ server <- function(input, output) {
     # If the input gene name an be mapped to the data, proceed
     # Otherwise print the error message generated above
     validate(
-      need(select.gene %in% allowed.names, paste(could.be, collapse=" "))
+      need(select.gene %in% ALLOWED.NAMES, paste(could.be, collapse=" "))
     )
     
     # Make sure that there's one condition selected
@@ -70,91 +73,27 @@ server <- function(input, output) {
     )
     
     # Convert the input to the same (systemic) format as the Gene column in the data
-    if(toupper(input$gene) %in% gene.map$Common) {
-      select.gene <- toString(gene.map[gene.map$Common == select.gene,]['Systemic'])
+    if(toupper(input$gene) %in% GENE.MAP$Common) {
+      select.gene <- toString(GENE.MAP[GENE.MAP$Common == select.gene,]['Systemic'])
     }
-    
-    # TODO: Go fix the prep script to make this unnecessary
-    select.gene <- gsub("-", ".", select.gene)
     
     # Return the converted input name
     select.gene
   })
   
-  # Change conditions in the UI
-  output$conditions <- renderUI({
-    checkboxGroupInput(inputId = 'conditions',
-                       label = 'Conditions',
-                       choices = levels(shiny.data$Condition),
-                       selected = conditions[conditions$Default,]$DataColumn)
+  validate.data <- reactive({
+    if(input$dataset != active.data()) {
+      shiny.data <<- read.table(file.path(META.DATA[META.DATA$Display == input$dataset,]$Path, META.DATA[META.DATA$Display == input$dataset,]$MetaData))
+      active.data(input$dataset)
+    }
+    validate(
+      need(active.data() == input$dataset, "Loading new data failed")
+    )
   })
   
   # Render the plot
   output$plots <- renderPlot({
-    # Validate gene name
-    select.gene <- validate.gene()
-
-    # Filter the data to just what's needed for these plots
-    shiny.data %>%
-        select(!!select.gene, Condition, Gene_Group, Genotype, Total_UMI, Num_Cells) %>%
-        filter(Condition %in% input$conditions) %>%
-        rename(Gene = !!select.gene) -> select.data
-
-    # Set stuff for the data scaling
-    y.axis.scale <- input$yaxis
-    if(y.axis.scale == YAXIS.UMI.COUNT) {
-      select.data$Gene = select.data$Gene / select.data$Num_Cells
-      y.text = YAXIS.UMI.COUNT.LABEL
-    }
-    else if (y.axis.scale == YAXIS.LIB.NORM | y.axis.scale ==  YAXIS.WT.NORM) {
-      select.data$Gene <- select.data$Gene / select.data$Total_UMI * 100
-      y.text = YAXIS.LIB.NORM.LABEL
-    }
-
-    # Calculate the WT mean
-    select.data %>%
-      filter(Gene_Group %in% "WT") %>%
-      group_by(Condition) %>%
-      summarize(wt=mean(Gene)) -> wt_mean
-    select.data <- merge(select.data, wt_mean, by='Condition')
-
-    # Normalize data to WT if that option is selected
-    if (input$yaxis == YAXIS.WT.NORM) {
-      y.text = YAXIS.WT.NORM.LABEL
-      select.data$Gene <- select.data$Gene / select.data$wt
-      select.data[is.na(select.data)] = NaN
-      wt_mean$wt = 1
-    }
-
-    # Generate a title line with the common and systemic names
-    plot.title.str <- paste("(", gene.map[gene.map$Systemic == gsub("\\.", "-", select.gene), 'Common'], ")", sep="")
-    plot.title.str <- paste(gsub("\\.", "-", select.gene), plot.title.str, "Expression\n")
-
-    # Draw plots for the data
-    pl <- ggplot(select.data, aes(Gene_Group, Gene)) +
-      labs(title=plot.title.str, x="Genotype", y=y.text, color="Genotype") +
-      geom_point(aes(color=factor(Gene_Group)), size=3, alpha=0.75) +
-      stat_summary(fun.y='mean', size=20, geom='point', shape='-') +
-      theme_bw() +
-      theme(axis.text.x = element_text(size = 12, angle=90), axis.title.x = element_text(size = 14),
-            axis.text.y = element_text(size = 12), axis.title.y = element_text(size = 14),
-            legend.text = element_text(size = 12), legend.title = element_text(size = 14, face = 'bold'),
-            plot.title = element_text(size = 16, face = "bold", hjust=0.5)) +
-
-    # Draw a dashed line onto the plots at the WT mean if that option is selected
-    if (input$wtline == YAXIS.SHOW){
-      pl <- geom_hline(data = wt_mean, aes(yintercept=wt), linetype='dashed', size=0.25)
-    }
-
-    # Facet_wrap on condition with desired scaling
-    if (input$yaxislim == YAXIS.FIXED){
-      pl <- pl + facet_wrap(~Condition, ncol=2, scales='fixed', labeller = labeller(Condition = relabel.facets))
-    }
-    else if (input$yaxislim == YAXIS.FREE){
-      pl <- pl + facet_wrap(~Condition, ncol=2, scales='free', labeller = labeller(Condition = relabel.facets))
-    }
-
-    # Return the plot
-    pl
+    validate.data()
+    get_plotter(input$dataset)(shiny.data, input$gene, input, validator = validate.gene)
   })
 }
