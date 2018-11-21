@@ -34,6 +34,10 @@ get_plotter <- function(data_set) {
   else {plot_null}
 }
 
+get_gene_data <<- function(select.gene, select.path) {
+  read.table(file.path(select.path, paste0(gsub("-", "\\.", select.gene), ".tsv")), header=FALSE)
+}
+
 default.data <- read.table(file.path(META.DATA[META.DATA$Default,]$Path, META.DATA[META.DATA$Default,]$MetaData))
 
 server <- function(input, output) {

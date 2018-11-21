@@ -60,7 +60,7 @@ plot_umap <- function(meta_data, gene, input, validator = NULL) {
     colorer = quote(Gene)
     color.label = "z-score"
     if (!is.null(validator)) {gene <- validator()}
-    gene.data <- read.table(file.path(META.DATA[META.DATA$Display == input$dataset, 'Path'], paste0(gsub("-", "\\.", gene), ".tsv")), header=FALSE)
+    gene.data <- get_gene_data(gene, META.DATA[META.DATA$Display == input$dataset, 'Path'])
     if (input$boundry == BOUNDRY.YES) {
       gene.data[gene.data > BOUNDRY.MAX] <- BOUNDRY.MAX
       gene.data[gene.data < BOUNDRY.MIN] <- BOUNDRY.MIN

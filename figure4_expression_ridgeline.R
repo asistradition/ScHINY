@@ -19,10 +19,6 @@ XAXIS.LIMIT.DEFAULT <- 'Fixed'
 XAXIS.FIXED <- 'Fixed'
 XAXIS.FREE <- 'Free'
 
-fake_quantile_mean <- function(data, probs=seq(0,0.5,1)) {
-  return(rep(mean(data), length(probs)))
-}
-
 sidebar_expression_ridge <- function() {
   list(
     checkboxGroupInput(inputId = 'conditions',
@@ -43,7 +39,7 @@ sidebar_expression_ridge <- function() {
 plot_expression_ridge <- function(meta_data, gene, input, validator = NULL) {
   if (!is.null(validator)) {gene <- validator()}
   select.data <- meta_data
-  select.data['Gene'] <- read.table(file.path(META.DATA[META.DATA$Display == input$dataset, 'Path'], paste0(gene, ".tsv")), header=FALSE)
+  select.data['Gene'] <- get_gene_data(gene, META.DATA[META.DATA$Display == input$dataset, 'Path'])
   
   select.data %>%
     select(Gene, Condition, Genotype_Group, Genotype, TotalUMI) %>%
@@ -59,10 +55,14 @@ plot_expression_ridge <- function(meta_data, gene, input, validator = NULL) {
   if(x.axis.scale == XAXIS.UMI.COUNT) {
     select.data$Gene = select.data$Gene
     y.text = XAXIS.UMI.COUNT.LABEL
+    bin.width = 1
+    min.x = -0.5
   }
   else if (x.axis.scale == XAXIS.LIB.NORM) {
     select.data$Gene <- select.data$Gene / select.data$TotalUMI * 100
     y.text = XAXIS.LIB.NORM.LABEL
+    bin.width = NULL
+    min.x = -0.1
   }
   
   select.data %>%
@@ -77,7 +77,7 @@ plot_expression_ridge <- function(meta_data, gene, input, validator = NULL) {
   # Draw plots for the data
   pl <- ggplot(select.data, aes(x=Gene, y=Genotype_Group)) +
     labs(title=plot.title.str, x=y.text, y="Genotype") +
-    stat_density_ridges(aes(fill=factor(Genotype_Group)), scale = 1, rel_min_height = 0.01, quantile_lines = TRUE, quantiles = 2, quantile_fun = fake_quantile_mean) + 
+    geom_density_ridges2(aes(fill=factor(Genotype_Group)), stat = "binline", binwidth = bin.width, scale = 0.9, rel_min_height = 0.01) + 
     geom_point(data=mdata, aes(x=gene_mean, y=Genotype_Group, fill=factor(Genotype_Group))) +
     theme_ridges() +
     theme(axis.text.x = element_text(size = 12), axis.title.x = element_text(size = 14, face="bold", hjust=0.5),
@@ -85,7 +85,7 @@ plot_expression_ridge <- function(meta_data, gene, input, validator = NULL) {
           plot.title = element_text(size = 16, face = "bold", hjust=0.5),
           strip.text = element_text(size = 16, face = "bold"),
           legend.position = 'none') +
-    scale_x_continuous(limits = c(0, NA))
+    scale_x_continuous(limits = c(min.x, NA))
     
   # Facet_wrap on condition with desired scaling
   if (x.axis.lim == XAXIS.FIXED){

@@ -52,7 +52,7 @@ sidebar_expression_summary <- function() {
 plot_expression_summary <- function(meta_data, gene, input, validator = NULL) {
   if (!is.null(validator)) {gene <- validator()}
   select.data <- meta_data
-  select.data['Gene'] <- read.table(file.path(META.DATA[META.DATA$Display == input$dataset, 'Path'], paste0(gene, ".tsv")), header=FALSE)
+  select.data['Gene'] <- get_gene_data(gene, META.DATA[META.DATA$Display == input$dataset, 'Path'])
   
   select.data %>%
     select(Gene, Condition, Genotype_Group, Genotype, TotalUMI, Num_Cells) %>%
