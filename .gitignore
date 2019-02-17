@@ -1,3 +1,7 @@
+# Raw data
+
+data/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -7,6 +11,7 @@ __pycache__/
 *.so
 
 # Distribution / packaging
+.Rhistory
 .Python
 build/
 develop-eggs/
