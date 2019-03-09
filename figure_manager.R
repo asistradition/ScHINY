@@ -10,6 +10,7 @@ source(file.path(FIGURE.PATH, "figure_2_ridgeline.R"))
 source(file.path(FIGURE.PATH, "figure_2_umap.R"))
 source(file.path(FIGURE.PATH, 'figure_3_condition_umap.R'))
 source(file.path(FIGURE.PATH, "figure_4_violin.R"))
+source(file.path(FIGURE.PATH, "figure_6_network.R"))
 
 # Load the validator functions
 source("validators.R")
@@ -34,7 +35,8 @@ FIGURE.PLOTTER.LIST <<- list("Select Figure" = plot.null,
                              "Figure 2 - Ridgeline" = plot.figure.2.ridgeline,
                              "Figure 2 - UMAP" = plot.figure.2.umap,
                              "Figure 3 - Condition UMAP" = plot.figure.3.umap,
-                             "Figure 4 - Violin" = plot.figure.4.violin)
+                             "Figure 4 - Violin" = plot.figure.4.violin,
+                             "Figure 6 - Network" = plot.figure.6.network)
 
 # List of figure experiment panel functions with display name keys
 FIGURE.EXP.PANEL.LIST <<- list("Select Figure" = panel.null,
@@ -42,7 +44,8 @@ FIGURE.EXP.PANEL.LIST <<- list("Select Figure" = panel.null,
                                "Figure 2 - Ridgeline" = exp.panel.figure.2.ridgeline,
                                "Figure 2 - UMAP" = exp.panel.figure.2.umap,
                                "Figure 3 - Condition UMAP" = exp.panel.figure.3.umap,
-                               "Figure 4 - Violin" = exp.panel.figure.4.violin)
+                               "Figure 4 - Violin" = exp.panel.figure.4.violin,
+                               "Figure 6 - Network" = panel.null)
 
 # List of figure condition panel functions with display name keys
 FIGURE.COND.PANEL.LIST <<- list("Select Figure" = panel.null,
@@ -50,7 +53,8 @@ FIGURE.COND.PANEL.LIST <<- list("Select Figure" = panel.null,
                                 "Figure 2 - Ridgeline" = panel.null,
                                 "Figure 2 - UMAP" = cond.panel.figure.2.umap,
                                 "Figure 3 - Condition UMAP" = cond.panel.figure.3.umap,
-                                "Figure 4 - Violin" = cond.panel.figure.4.violin)
+                                "Figure 4 - Violin" = cond.panel.figure.4.violin,
+                                "Figure 6 - Network" = panel.null)
 
 # List of validator scripts with display name keys
 FIGURE.VALIDATOR.LIST <<- list("Select Figure" = validate.null,
@@ -58,7 +62,8 @@ FIGURE.VALIDATOR.LIST <<- list("Select Figure" = validate.null,
                                "Figure 2 - Ridgeline" = validate.multigene.input,
                                "Figure 2 - UMAP" = process.gene.input,
                                "Figure 3 - Condition UMAP" = process.gene.input,
-                               "Figure 4 - Violin" = validate.multigene.input)
+                               "Figure 4 - Violin" = validate.multigene.input,
+                               "Figure 6 - Network" = validate.multigene.input)
 
 # Turn a display name into a function to generate a plot
 get.data.plotter <<- function(display.name) {

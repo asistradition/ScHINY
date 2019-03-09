@@ -21,6 +21,7 @@ if(!exists('FIGURE.PATH')) {FIGURE.PATH <<- 'figures'}
 if(!exists('IMAGE.PATH')) {IMAGE.PATH <<- 'images'}
 if(!exists('GENE.MAP.FILE')) {GENE.MAP.FILE <<- '20181001_genes.tsv'}
 if(!exists('META.DATA.FILE')) {META.DATA.FILE <<- 'jackson_2019_meta_data.tsv.gz'}
+if(!exists('NETWORK.FILE')) {NETWORK.FILE <<- 'jackson_2019_network.tsv.gz'}
 
 # Set labels and defaults for the UI
 if(!exists('SHINY.TITLE')) SHINY.TITLE <<- "Single Cell Saccharomycs Cerevisiae"
@@ -37,6 +38,7 @@ if(!exists('TITLE.FONT.SIZE')) {TITLE.FONT.SIZE <<- 16}
 
 # Load the base data - genotype, condition, and UMAP coords
 if(!exists('META.DATA')) {META.DATA <<- read.table(gzfile(file.path(DATA.PATH, META.DATA.FILE)), header=TRUE, sep="\t")}
+if(!exists('NETWORK.DATA')) {NETWORK.DATA <<- read.table(gzfile(file.path(DATA.PATH, NETWORK.FILE)), header=TRUE, sep="\t")}
 if(!exists('DATA.TYPES')) {DATA.TYPES <<- c('counts', 'logcounts', 'activity')}
 if(!exists('MAX.CONCURRENT.LOADED')) {MAX.CONCURRENT.LOADED <<- 50}
 

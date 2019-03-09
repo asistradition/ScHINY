@@ -1,16 +1,15 @@
 require(shiny)
-require(htmlwidgets)
 source("settings.R")
 
 # Define the user interface                   
 ui <- fluidPage(
+  # This is a css hack for plot height I stole from stack overflow
+  # https://stackoverflow.com/questions/26782041/scaling-shiny-plots-to-window-height/26785047
+  tags$head(tags$style(HTML(".shiny-plot-output{height:100vh !important;}"))),
+  
   fluidRow(
     column(3,
            wellPanel(
-            # This is a css hack for plot height I stole from stack overflow
-            # https://stackoverflow.com/questions/26782041/scaling-shiny-plots-to-window-height/26785047
-            tags$head(tags$style("#plots{height:100vh !important;}")),
-             
             # This is the selection for the figure aspect
             # It's outside the reactive panels so it doesn't reload all the time
             selectInput(inputId = 'dataset',
@@ -30,7 +29,9 @@ ui <- fluidPage(
             # This is the data selection-specific panel
             # It's separate from the figure panel so it doesn't get reloaded when
             # Switching between figures that would keep the same data selection panel
-            uiOutput("CondPanel")
+            uiOutput("CondPanel"),
+            
+            tags$div(shiny::a(href="https://github.com/asistradition/ScHINY", "GitHub"))
            )
          ),
       column(9, plotOutput(outputId = 'plots'))
