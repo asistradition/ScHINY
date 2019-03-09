@@ -11,6 +11,9 @@ library(RColorBrewer)
 library(cowplot)
 library(scales)
 library(viridis)
+library(network)
+library(sna)
+library(GGally)
 
 # Load tidyverse stuff
 library(dplyr)
