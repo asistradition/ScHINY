@@ -18,6 +18,10 @@ library(GGally)
 # Load tidyverse stuff
 library(dplyr)
 
+## Function to load data from tsv.gz files ##
+
+load.tsv.gz <- function(file.name, ...) {read.table(base::gzfile(file.name), ...)}
+
 # Path and file names
 if(!exists('DATA.PATH')) {DATA.PATH <<- 'data'}
 if(!exists('FIGURE.PATH')) {FIGURE.PATH <<- 'figures'}
@@ -40,8 +44,8 @@ if(!exists('LABEL.FONT.SIZE')) {LABEL.FONT.SIZE <<- 14}
 if(!exists('TITLE.FONT.SIZE')) {TITLE.FONT.SIZE <<- 16}
 
 # Load the base data - genotype, condition, and UMAP coords
-if(!exists('META.DATA')) {META.DATA <<- read.table(gzfile(file.path(DATA.PATH, META.DATA.FILE)), header=TRUE, sep="\t")}
-if(!exists('NETWORK.DATA')) {NETWORK.DATA <<- read.table(gzfile(file.path(DATA.PATH, NETWORK.FILE)), header=TRUE, sep="\t")}
+if(!exists('META.DATA')) {META.DATA <<- load.tsv.gz(file.path(DATA.PATH, META.DATA.FILE), header=TRUE, sep="\t")}
+if(!exists('NETWORK.DATA')) {NETWORK.DATA <<- load.tsv.gz(file.path(DATA.PATH, NETWORK.FILE), header=TRUE, sep="\t")}
 if(!exists('DATA.TYPES')) {DATA.TYPES <<- c('counts', 'logcounts', 'activity')}
 if(!exists('MAX.CONCURRENT.LOADED')) {MAX.CONCURRENT.LOADED <<- 50}
 
@@ -69,6 +73,33 @@ if(!exists('CLUSTER.COLORS')) {CLUSTER.COLORS <<- brewer.pal(9, 'Set1')}
 
 # Load the figure management script (which will bring in the figure scripts)
 if(!exists('get.data.plotter')) {source('figure_manager.R')}
+
+## Here are functions to load gene-specific data and to process that data into a data.frame for plotting ##
+
+# Take the result of a validation function and load the gene data that it referrs to
+get.gene.data <- function(data.list, genes.to.load) {
+  if(is.null(genes.to.load)) {return(data.list)}
+  for (gene.name in genes.to.load) {
+    if(!gene.name %in% names(data.list)) {
+      data.list[[gene.name]] <- load.tsv.gz(file.path(DATA.PATH, paste0(gsub("-", "\\.", gene.name), ".tsv.gz")), header = TRUE)
+    }
+  }
+  if (length(data.list) > MAX.CONCURRENT.LOADED) {data.list <- data.list[c("meta.data", genes.to.load)]}
+  return(data.list)
+}
+
+# Take the loaded data and convert it to a dataframe suitable for plotting
+process.data.list <- function(data.list, genes.to.load, data.type="counts", scale.data = FALSE) {
+  processed.data.frame <- data.list[["meta.data"]]
+  if (is.null(genes.to.load)) (return(processed.data.frame))
+  for (gene.name in genes.to.load) {
+    if (scale.data) {new.data <- scale(data.list[[gene.name]][data.type])}
+    else {new.data <- data.list[[gene.name]][data.type]}
+    colnames(new.data) <- gene.name
+    processed.data.frame <- cbind(processed.data.frame, new.data)
+  }
+  return(processed.data.frame)
+}
 
 ## Also here are several common functions for converting between human-readable labels and labels within the data ##
 

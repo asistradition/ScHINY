@@ -92,29 +92,3 @@ get.validator <<- function(display.name) {
   else if (!display.name %in% names(FIGURE.EXP.PANEL.LIST)) {return(validate.always.true)}
   else {return(FIGURE.VALIDATOR.LIST[[display.name]])}
 }
-
-# Take the result of a validation function and load the gene data that it referrs to
-get.gene.data <- function(data.list, genes.to.load) {
-  if(is.null(genes.to.load)) {return(data.list)}
-  for (gene.name in genes.to.load) {
-    if(!gene.name %in% names(data.list)) {
-      data.list[[gene.name]] <- read.table(gzfile(file.path(DATA.PATH, paste0(gsub("-", "\\.", gene.name), ".tsv.gz"))), header=TRUE)
-    }
-  }
-  if (length(data.list) > MAX.CONCURRENT.LOADED) {data.list <- data.list[c("meta.data", genes.to.load)]}
-  return(data.list)
-}
-
-# Take the loaded data and convert it to a dataframe suitable for plotting
-process.data.list <- function(data.list, genes.to.load, data.type="counts", scale.data = FALSE) {
-  processed.data.frame <- data.list[["meta.data"]]
-  if (is.null(genes.to.load)) (return(processed.data.frame))
-  for (gene.name in genes.to.load) {
-    if (scale.data) {new.data <- scale(data.list[[gene.name]][data.type])}
-    else {new.data <- data.list[[gene.name]][data.type]}
-    colnames(new.data) <- gene.name
-    processed.data.frame <- cbind(processed.data.frame, new.data)
-  }
-  return(processed.data.frame)
-}
-
