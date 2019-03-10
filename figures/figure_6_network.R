@@ -9,7 +9,7 @@ plot.figure.6.network <- function(shiny.data, gene.vec, input) {
   # Get the network data that matches inputs
   net.slice <- NETWORK.DATA[NETWORK.DATA$regulator %in% gene.vec | NETWORK.DATA$target %in% gene.vec, NETWORK.COLS]
   
-  # Create a real network if there's anything to plot; otherwise create a adjacency matrix of 0s
+  # Create a real network if there's anything to plot; otherwise create nothing
   if (nrow(net.slice) > 0) {
     net.slice$regulator <- yeast.systemic.to.common(net.slice$regulator)
     net.slice$target <- yeast.systemic.to.common(net.slice$target)
