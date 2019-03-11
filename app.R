@@ -34,7 +34,7 @@ ui <- fluidPage(
             shiny::tags$b(textOutput("Description_header")),
             
             textOutput("Description"),
-            
+            tags$br(),
             tags$div(shiny::a(href="https://github.com/asistradition/ScHINY", "GitHub"))
            )
          ),
