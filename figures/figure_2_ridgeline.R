@@ -34,6 +34,8 @@ plot.figure.2.ridgeline <- function(shiny.data, gene.vec, input) {
 
 exp.panel.figure.2.ridgeline <- function() {list()}
 
+describe.figure.2.ridgeline <- function(...) {"Normalized density histograms of raw UMI counts for expression. Mean UMI count for each of 12 strain genotypes within each growth condition are plotted as dots on the X axis."}
+
 # Plot function with the common options for each plot
 make.ridgeline.plt <- function(ridge.data, median.data, gene.name) {
   ridge.data <- ridge.data[ridge.data$Gene == gene.name, ]

@@ -37,6 +37,8 @@ exp.panel.figure.4.violin <- function() {list()}
 
 cond.panel.figure.4.violin <- function(...) {cond.panel.standard(selected.conditions = CONDITION.SELECT.DEFAULT, selected.genotypes = GENOTYPE.LABELS)}
 
+describe.figure.4.violin <- function(...) {"Violin plots of the log2 batch-normalized gene expression"}
+
 safe.relabeler <- function(label.names) {
   label.names <- yeast.systemic.to.common(label.names)
   relabel.names <- CONDITION.FACET.LABELER(label.names)

@@ -60,3 +60,5 @@ exp.panel.figure.2.umap <- function() {
 }
 
 cond.panel.figure.2.umap <- function(...) {cond.panel.standard(selected.conditions = CONDITION.LABELS, selected.genotypes = GENOTYPE.LABELS)}
+
+describe.figure.2.umap <- function(...) {"Uniform Manifold Approximation and Projection (UMAP) projection of log-transformed and batch-normalized single-cell data"}

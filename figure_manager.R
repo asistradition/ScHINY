@@ -19,6 +19,7 @@ source("validators.R")
 # All plot scripts MUST implement the same function signature
 plot.null <- function(shiny.data, gene, input) {return(NULL)}
 panel.null <- function(...) {return(list())}
+describe.null <- function(...) {return("Single Cell Yeast Expression Data")}
 
 cond.panel.standard <- function(selected.conditions=NULL, selected.genotypes=NULL) {
   if(is.null(selected.conditions)) {selected.conditions <- CONDITION.SELECT.DEFAULT}
@@ -65,6 +66,15 @@ FIGURE.VALIDATOR.LIST <<- list("Select Figure" = validate.null,
                                "Figure 4 - Violin" = validate.multigene.input,
                                "Figure 6 - Network" = validate.multigene.input)
 
+# List of figure experiment panel functions with display name keys
+FIGURE.DESCRIBE.PANEL.LIST <<- list("Select Figure" = describe.null,
+                                    "Figure 1 - Schematic" = describe.figure.1.schematic,
+                                    "Figure 2 - Ridgeline" = describe.figure.2.ridgeline,
+                                    "Figure 2 - UMAP" = describe.figure.2.umap,
+                                    "Figure 3 - Condition UMAP" = describe.figure.3.umap,
+                                    "Figure 4 - Violin" = describe.figure.4.violin,
+                                    "Figure 6 - Network" = describe.figure.6.network)
+
 # Turn a display name into a function to generate a plot
 get.data.plotter <<- function(display.name) {
   if (is.null(display.name)) {return(plot.null)}
@@ -84,6 +94,12 @@ get.condition.panel <<- function(display.name) {
   if (is.null(display.name)) {return(panel.null)}
   else if (!display.name %in% names(FIGURE.COND.PANEL.LIST)) {return(panel.null)}
   else {return(FIGURE.COND.PANEL.LIST[[display.name]])}
+}
+
+get.description.text <<- function(display.name) {
+  if (is.null(display.name)) {return(describe.null)}
+  else if (!display.name %in% names(FIGURE.COND.PANEL.LIST)) {return(describe.null)}
+  else {return(FIGURE.DESCRIBE.PANEL.LIST[[display.name]])}
 }
 
 # Turn a display name into a function to validate input

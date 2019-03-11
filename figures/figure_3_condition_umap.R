@@ -71,3 +71,5 @@ exp.panel.figure.3.umap <- function() {
 }
 
 cond.panel.figure.3.umap <- function(...) {list(checkboxGroupInput(inputId = 'genotypes', label = 'Genotypes', choices = rev(GENOTYPE.LABELS), selected = rev(GENOTYPE.LABELS)))}
+
+describe.figure.3.umap <- function(...) {"Cells from each growth condition are separately normalized and transformed into 2-dimensional space by UMAP."}

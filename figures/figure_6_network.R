@@ -31,3 +31,5 @@ plot.figure.6.network <- function(shiny.data, gene.vec, input) {
   
   return(plt)
 }
+
+describe.figure.6.network <- function(...) {"Network graph with known interaction edges from the prior in gray and new inferred interaction edges in red"}

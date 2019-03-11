@@ -31,6 +31,10 @@ ui <- fluidPage(
             # Switching between figures that would keep the same data selection panel
             uiOutput("CondPanel"),
             
+            shiny::tags$b(textOutput("Description_header")),
+            
+            textOutput("Description"),
+            
             tags$div(shiny::a(href="https://github.com/asistradition/ScHINY", "GitHub"))
            )
          ),
@@ -57,6 +61,8 @@ server <- function(input, output, session) {
       active.figure(input$dataset)
       output$ExpPanel <- shiny::renderUI({get.experiment.panel(active.figure())()})
       output$CondPanel <- shiny::renderUI({get.condition.panel(active.figure())(selected.conditions = input$conditions, selected.genotypes = input$genotypes)})
+      output$Description <- shiny::renderText({get.description.text(active.figure())()})
+      output$Description_header <- shiny::renderText({"Description"})
     }
     shiny::validate(shiny::need(active.figure() == input$dataset, "Loading new figure failed"))
   })
