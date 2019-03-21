@@ -35,7 +35,8 @@ ui <- fluidPage(
             
             textOutput("Description"),
             tags$br(),
-            tags$div(shiny::a(href="https://github.com/asistradition/ScHINY", "GitHub"))
+            tags$div(shiny::a(href="https://github.com/asistradition/ScHINY", "Shiny Code (GitHub)")),
+            tags$div(shiny::a(href="https://www.biorxiv.org/content/10.1101/581678v1", "Preprint (Biorxiv)"))
            )
          ),
       column(9, plotOutput(outputId = 'plots'))
