@@ -1,3 +1,5 @@
+VERSION.STRING <- "March 19, 2019 (v1)"
+
 ## This file should be sourced at the top of all the shiny app scripts ##
 ## It loads necessary packages and populates the global namespace ##
 
