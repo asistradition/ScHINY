@@ -23,21 +23,16 @@ ui <- fluidPage(
                       label = GENE.LABEL,
                       value = GENE.DEFAULT),
             
-            # This is the figure aspect-specific panel
-            uiOutput("ExpPanel"),
-            
-            # This is the data selection-specific panel
-            # It's separate from the figure panel so it doesn't get reloaded when
-            # Switching between figures that would keep the same data selection panel
-            uiOutput("CondPanel"),
+            checkboxInput(inputId = 'common_names',
+                          label = "Common Names",
+                          value = TRUE),
             
             shiny::tags$b(textOutput("Description_header")),
             
             textOutput("Description"),
+            
             tags$br(),
-            tags$div(shiny::a(href="https://elifesciences.org/articles/51254", "Published (eLIFE)")),
             tags$div(shiny::a(href="https://github.com/asistradition/ScHINY", "Shiny Code (GitHub)")),
-            tags$div(shiny::a(href="https://www.biorxiv.org/content/10.1101/581678v1", "Preprint (Biorxiv)")),
             tags$div(shiny::p(paste0("App Version: ", VERSION.STRING)))
            )
          ),
@@ -50,20 +45,16 @@ ui <- fluidPage(
 server <- function(input, output, session) {
   
   # Begin with the default data and default figure
-  shiny.data <- list(meta.data = META.DATA)
+  shiny.data <- list()
   active.figure <- shiny::reactiveVal(DEFAULT.FIGURE)
-  output$ExpPanel <- get.experiment.panel(DEFAULT.FIGURE)
-  output$CondPanel <- get.condition.panel(DEFAULT.FIGURE)
-  
+
   # Validate the gene input
-  validate.gene <- shiny::reactive({get.validator(input$dataset)(input$gene)})
+  validate.gene <- shiny::reactive({get.validator(input$dataset)(input$gene, input$common_names)})
   
   # Make sure that the active.figure is correct (this is needed to make the reactive UI elements work)
   update.figure <- shiny::reactive({
     if(input$dataset != active.figure()) {
       active.figure(input$dataset)
-      output$ExpPanel <- shiny::renderUI({get.experiment.panel(active.figure())()})
-      output$CondPanel <- shiny::renderUI({get.condition.panel(active.figure())(selected.conditions = input$conditions, selected.genotypes = input$genotypes)})
       output$Description <- shiny::renderText({get.description.text(active.figure())()})
       output$Description_header <- shiny::renderText({"Description"})
     }
@@ -74,8 +65,7 @@ server <- function(input, output, session) {
   output$plots <- shiny::renderPlot({
     update.figure()
     validated.genes <- validate.gene()
-    shiny.data <- get.gene.data(shiny.data, validated.genes)
-    get.data.plotter(active.figure())(shiny.data, validated.genes, input)
+    get.data.plotter(active.figure())(NULL, validated.genes, input)
   })
 }
 

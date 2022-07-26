@@ -5,12 +5,8 @@
 require(shiny)
 
 # Load the figure scripts
-source(file.path(FIGURE.PATH, "figure_1_schematic.R"))
-source(file.path(FIGURE.PATH, "figure_2_ridgeline.R"))
-source(file.path(FIGURE.PATH, "figure_2_umap.R"))
-source(file.path(FIGURE.PATH, 'figure_3_condition_umap.R'))
-source(file.path(FIGURE.PATH, "figure_4_violin.R"))
-source(file.path(FIGURE.PATH, "figure_6_network.R"))
+source(file.path(FIGURE.PATH, "network_figure.R"))
+source(file.path(FIGURE.PATH, "expression_figure.R"))
 
 # Load the validator functions
 source("validators.R")
@@ -19,92 +15,74 @@ source("validators.R")
 # All plot scripts MUST implement the same function signature
 plot.null <- function(shiny.data, gene, input) {return(NULL)}
 panel.null <- function(...) {return(list())}
-describe.null <- function(...) {return("Single Cell Yeast Expression Data")}
+describe.null <- function(...) {return("Rice Network Data")}
 
-cond.panel.standard <- function(selected.conditions=NULL, selected.genotypes=NULL) {
-  if(is.null(selected.conditions)) {selected.conditions <- CONDITION.SELECT.DEFAULT}
-  if(is.null(selected.genotypes)) {selected.genotypes <- GENOTYPE.LABELS}
-  list(
-    checkboxGroupInput(inputId = 'conditions', label = 'Conditions', choices = rev(CONDITION.LABELS), selected = selected.conditions),
-    checkboxGroupInput(inputId = 'genotypes', label = 'Genotypes', choices = rev(GENOTYPE.LABELS), selected = selected.genotypes)
-    )
-}
+validate.gene.input.osi <- function(x, cn) {validate.gene.input(x, "OSI", use.common.names=cn)}
+validate.gene.input.osj <- function(x, cn) {validate.gene.input(x, "OSJ", use.common.names=cn)}
+validate.gene.input.og <- function(x, cn) {validate.gene.input(x, "OG", use.common.names=cn)}
+
+validate.multigene.input.osi <- function(x, cn) {validate.multigene.input(x, "OSI", use.common.names=cn)}
+validate.multigene.input.osj <- function(x, cn) {validate.multigene.input(x, "OSJ", use.common.names=cn)}
+validate.multigene.input.og <- function(x, cn) {validate.multigene.input(x, "OG", use.common.names=cn)}
 
 # List of figure plot functions with display name keys
-FIGURE.PLOTTER.LIST <<- list("Select Figure" = plot.null, 
-                             "Figure 1 - Schematic" = plot.figure.1.schematic,
-                             "Figure 2 - Ridgeline" = plot.figure.2.ridgeline,
-                             "Figure 2 - UMAP" = plot.figure.2.umap,
-                             "Figure 3 - Condition UMAP" = plot.figure.3.umap,
-                             "Figure 4 - Violin" = plot.figure.4.violin,
-                             "Figure 6 - Network" = plot.figure.6.network)
-
-# List of figure experiment panel functions with display name keys
-FIGURE.EXP.PANEL.LIST <<- list("Select Figure" = panel.null,
-                               "Figure 1 - Schematic" = exp.panel.figure.1.schematic,
-                               "Figure 2 - Ridgeline" = exp.panel.figure.2.ridgeline,
-                               "Figure 2 - UMAP" = exp.panel.figure.2.umap,
-                               "Figure 3 - Condition UMAP" = exp.panel.figure.3.umap,
-                               "Figure 4 - Violin" = exp.panel.figure.4.violin,
-                               "Figure 6 - Network" = panel.null)
-
-# List of figure condition panel functions with display name keys
-FIGURE.COND.PANEL.LIST <<- list("Select Figure" = panel.null,
-                                "Figure 1 - Schematic" = panel.null,
-                                "Figure 2 - Ridgeline" = panel.null,
-                                "Figure 2 - UMAP" = cond.panel.figure.2.umap,
-                                "Figure 3 - Condition UMAP" = cond.panel.figure.3.umap,
-                                "Figure 4 - Violin" = cond.panel.figure.4.violin,
-                                "Figure 6 - Network" = panel.null)
+FIGURE.PLOTTER.LIST <<- list(
+  "Select Figure" = plot.null,
+  "Oryza sativa indica Gene Expression" = function(...) {plot.expression.over.time("OSI", ...)},
+  "Oryza sativa japonica Gene Expression" = function(...) {plot.expression.over.time("OSJ", ...)},
+  "Oryza sativa glaberrima Gene Expression" =  function(...) {plot.expression.over.time("OG", ...)},
+  "Oryza sativa indica - (BBSR/EGRIN)" = function(...) {plot.figure.network(NETWORK.DATA[["OSI_BBSR_EGRIN"]], "OSI", ...)},
+  "Oryza sativa japonica - (BBSR/EGRIN)" = function(...) {plot.figure.network(NETWORK.DATA[["OSJ_BBSR_EGRIN"]], "OSJ", ...)},
+  "Oryza sativa glaberrima - (BBSR/EGRIN)" =  function(...) {plot.figure.network(NETWORK.DATA[["OG_BBSR_EGRIN"]], "OG", ...)},
+  "Oryza sativa indica - (BBSR/PlantRegDB)" = function(...) {plot.figure.network(NETWORK.DATA[["OSI_BBSR_PREGDB"]], "OSI", ...)},
+  "Oryza sativa japonica - (BBSR/PlantRegDB)" = function(...) {plot.figure.network(NETWORK.DATA[["OSJ_BBSR_PREGDB"]], "OSJ", ...)},
+  "Oryza sativa glaberrima - (BBSR/PlantRegDB)" = function(...) {plot.figure.network(NETWORK.DATA[["OG_BBSR_PREGDB"]], "OG", ...)}
+)
 
 # List of validator scripts with display name keys
-FIGURE.VALIDATOR.LIST <<- list("Select Figure" = validate.null,
-                               "Figure 1 - Schematic" = validate.null,
-                               "Figure 2 - Ridgeline" = validate.multigene.input,
-                               "Figure 2 - UMAP" = process.gene.input,
-                               "Figure 3 - Condition UMAP" = process.gene.input,
-                               "Figure 4 - Violin" = validate.multigene.input,
-                               "Figure 6 - Network" = validate.multigene.input)
+FIGURE.VALIDATOR.LIST <<- list(
+  "Select Figure" = validate.null,
+  "Oryza sativa indica Gene Expression" = validate.gene.input.osi,
+  "Oryza sativa japonica Gene Expression" = validate.gene.input.osj,
+  "Oryza sativa glaberrima Gene Expression" =  validate.gene.input.og,
+  "Oryza sativa indica - (BBSR/EGRIN)" = validate.multigene.input.osi,
+  "Oryza sativa japonica - (BBSR/EGRIN)" = validate.multigene.input.osj,
+  "Oryza sativa glaberrima - (BBSR/EGRIN)" = validate.multigene.input.og,
+  "Oryza sativa indica - (BBSR/PlantRegDB)" = validate.multigene.input.osi,
+  "Oryza sativa japonica - (BBSR/PlantRegDB)" = validate.multigene.input.osj,
+  "Oryza sativa glaberrima - (BBSR/PlantRegDB)" = validate.multigene.input.og
+)
+                               
 
 # List of figure experiment panel functions with display name keys
-FIGURE.DESCRIBE.PANEL.LIST <<- list("Select Figure" = describe.null,
-                                    "Figure 1 - Schematic" = describe.figure.1.schematic,
-                                    "Figure 2 - Ridgeline" = describe.figure.2.ridgeline,
-                                    "Figure 2 - UMAP" = describe.figure.2.umap,
-                                    "Figure 3 - Condition UMAP" = describe.figure.3.umap,
-                                    "Figure 4 - Violin" = describe.figure.4.violin,
-                                    "Figure 6 - Network" = describe.figure.6.network)
+FIGURE.DESCRIBE.PANEL.LIST <<- list(
+  "Select Figure" = describe.null,
+  "Oryza sativa indica Gene Expression" = function(...) {describe.expression.over.time("OSI", ...)},
+  "Oryza sativa japonica Gene Expression" = function(...) {describe.expression.over.time("OSJ", ...)},
+  "Oryza sativa glaberrima Gene Expression" =  function(...) {describe.expression.over.time("OG", ...)},
+  "Oryza sativa indica - (BBSR/EGRIN)" = function(...) {describe.figure.network(NETWORK.DATA[["OSI_BBSR_EGRIN"]], "OSI", ...)},
+  "Oryza sativa japonica - (BBSR/EGRIN)" = function(...) {describe.figure.network(NETWORK.DATA[["OSJ_BBSR_EGRIN"]], "OSJ", ...)},
+  "Oryza sativa glaberrima - (BBSR/EGRIN)" =  function(...) {describe.figure.network(NETWORK.DATA[["OG_BBSR_EGRIN"]], "OG", ...)},
+  "Oryza sativa indica - (BBSR/PlantRegDB)" = function(...) {describe.figure.network(NETWORK.DATA[["OSI_BBSR_PREGDB"]], "OSI", ...)},
+  "Oryza sativa japonica - (BBSR/PlantRegDB)" = function(...) {describe.figure.network(NETWORK.DATA[["OSJ_BBSR_PREGDB"]], "OSJ", ...)},
+  "Oryza sativa glaberrima - (BBSR/PlantRegDB)" = function(...) {describe.figure.network(NETWORK.DATA[["OG_BBSR_PREGDB"]], "OG", ...)}
+)
 
-# Turn a display name into a function to generate a plot
 get.data.plotter <<- function(display.name) {
   if (is.null(display.name)) {return(plot.null)}
   else if (!display.name %in% names(FIGURE.PLOTTER.LIST)) {return(plot.null)}
   else {return(FIGURE.PLOTTER.LIST[[display.name]])}
 }
 
-# Turn a display name into a function to generate the experiment UI
-get.experiment.panel <<- function(display.name) {
-  if (is.null(display.name)) {return(panel.null)}
-  else if (!display.name %in% names(FIGURE.EXP.PANEL.LIST)) {return(panel.null)}
-  else {return(FIGURE.EXP.PANEL.LIST[[display.name]])}
-}
-
-# Turn a display name into a function to generate the condition UI
-get.condition.panel <<- function(display.name) {
-  if (is.null(display.name)) {return(panel.null)}
-  else if (!display.name %in% names(FIGURE.COND.PANEL.LIST)) {return(panel.null)}
-  else {return(FIGURE.COND.PANEL.LIST[[display.name]])}
-}
-
 get.description.text <<- function(display.name) {
   if (is.null(display.name)) {return(describe.null)}
-  else if (!display.name %in% names(FIGURE.COND.PANEL.LIST)) {return(describe.null)}
+  else if (!display.name %in% names(FIGURE.PLOTTER.LIST)) {return(describe.null)}
   else {return(FIGURE.DESCRIBE.PANEL.LIST[[display.name]])}
 }
 
 # Turn a display name into a function to validate input
 get.validator <<- function(display.name) {
   if (is.null(display.name)) {return(validate.always.true)}
-  else if (!display.name %in% names(FIGURE.EXP.PANEL.LIST)) {return(validate.always.true)}
+  else if (!display.name %in% names(FIGURE.PLOTTER.LIST)) {return(validate.always.true)}
   else {return(FIGURE.VALIDATOR.LIST[[display.name]])}
 }
