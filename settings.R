@@ -32,6 +32,10 @@ if(!exists('DATA.PATH')) {DATA.PATH <<- 'data'}
 if(!exists('FIGURE.PATH')) {FIGURE.PATH <<- 'figures'}
 if(!exists('IMAGE.PATH')) {IMAGE.PATH <<- 'images'}
 
+if(!exists('NETWORK.RDS.FILE')) {NETWORK.RDS.FILE <<- 'Oryza_Networks_072722.rds'}
+if(!exists('EXPRESSION.RDS.FILE')) {EXPRESSION.RDS.FILE <<- 'MZ2020_expression_072722.rds'}
+
+
 if(!exists('SPECIES_DISPLAY_NAMES')) {
   SPECIES.DISPLAY.NAMES <- list(OSI='Oryza sativa indica',
                                 OSJ='Oryza sativa japonica',
@@ -88,36 +92,46 @@ if(!exists('DEFAULT.FIGURE')) {DEFAULT.FIGURE <<- "Select Figure"}
 if(!exists('LABEL.FONT.SIZE')) {LABEL.FONT.SIZE <<- 14}
 if(!exists('TITLE.FONT.SIZE')) {TITLE.FONT.SIZE <<- 16}
 
-# Load the base data - genotype, condition, and UMAP coords
+# Load network data
 if(!exists('NETWORK.DATA')) {
-  NETWORK.DATA <<- lapply(
-    X = NETWORK.FILE,
-    FUN = function(x) {
-      cut.max.mcc(
+  if(file.exists(file.path(DATA.PATH, NETWORK.RDS.FILE))) {
+    NETWORK.DATA <<- readRDS(file.path(DATA.PATH, NETWORK.RDS.FILE))
+  }
+  else {
+    NETWORK.DATA <<- lapply(
+      X = NETWORK.FILE,
+      FUN = function(x) {
+        cut.max.mcc(
+          load.tsv.gz(
+            file.path(DATA.PATH, x),
+            header=TRUE,
+            sep="\t",
+            stringsAsFactors = FALSE
+          )
+        )
+      }
+    )
+  }
+}
+
+# Load expression data
+if(!exists('EXPRESSION.DATA')) {
+  if(file.exists(file.path(DATA.PATH, EXPRESSION.RDS.FILE))) {
+    EXPRESSION.DATA <<- readRDS(file.path(DATA.PATH, EXPRESSION.RDS.FILE))
+  }
+  else {
+    EXPRESSION.DATA <<- lapply(
+      X = EXPRESSION.FILE,
+      FUN = function(x) {
         load.tsv.gz(
           file.path(DATA.PATH, x),
           header=TRUE,
           sep="\t",
           stringsAsFactors = FALSE
         )
-      )
-    }
-  )
-}
-
-# Load the base data - genotype, condition, and UMAP coords
-if(!exists('EXPRESSION.DATA')) {
-  EXPRESSION.DATA <<- lapply(
-    X = EXPRESSION.FILE,
-    FUN = function(x) {
-      load.tsv.gz(
-        file.path(DATA.PATH, x),
-        header=TRUE,
-        sep="\t",
-        stringsAsFactors = FALSE
-      )
-    }
-  )
+      }
+    )
+  }
 }
 
 if(!exists('EXPRESSION.METADATA')) {

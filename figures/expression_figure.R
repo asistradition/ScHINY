@@ -17,11 +17,18 @@ plot.expression.over.time <- function(species, shiny.data, gene.vec, input) {
   
   # Create a real network if there's anything to plot; otherwise create nothing
   plt <- ggplot(expr.data, aes(x=factor(time), y=expr, color=landrace, linetype=cond, group=interaction(landrace, cond))) +
-    geom_point() +
-    stat_summary(fun=sum, geom="line") +
+    geom_point(size=4) +
+    stat_summary(fun=sum, geom="line", size=2) +
     theme_classic() +
     scale_y_continuous(limits=c(0, NA)) +
-    labs(x="Time [min]", y=paste0(gene.vec, " Expression [TPM]"), color="Landrace", linetype="Stress")
+    scale_x_discrete(breaks=c(0, 15, 30, 45, 60, 90, 180, 240, 7200)) +
+    labs(x="Time [min] (Not to Scale)", y=paste0(gene.vec, " Expression [TPM]"), color="Landrace", linetype="Stress") +
+    theme(
+      axis.title = element_text(size = 14, face = "bold"),
+      axis.text = element_text(size = 12),
+      legend.title = element_text(size = 14, face = "bold"),
+      legend.text = element_text(size = 12)
+    )
   
   return(plt)
 }

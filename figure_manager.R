@@ -30,13 +30,13 @@ FIGURE.PLOTTER.LIST <<- list(
   "Select Figure" = plot.null,
   "Oryza sativa indica Gene Expression" = function(...) {plot.expression.over.time("OSI", ...)},
   "Oryza sativa japonica Gene Expression" = function(...) {plot.expression.over.time("OSJ", ...)},
-  "Oryza sativa glaberrima Gene Expression" =  function(...) {plot.expression.over.time("OG", ...)},
+  "Oryza glaberrima Gene Expression" =  function(...) {plot.expression.over.time("OG", ...)},
   "Oryza sativa indica - (BBSR/EGRIN)" = function(...) {plot.figure.network(NETWORK.DATA[["OSI_BBSR_EGRIN"]], "OSI", ...)},
   "Oryza sativa japonica - (BBSR/EGRIN)" = function(...) {plot.figure.network(NETWORK.DATA[["OSJ_BBSR_EGRIN"]], "OSJ", ...)},
-  "Oryza sativa glaberrima - (BBSR/EGRIN)" =  function(...) {plot.figure.network(NETWORK.DATA[["OG_BBSR_EGRIN"]], "OG", ...)},
+  "Oryza glaberrima - (BBSR/EGRIN)" =  function(...) {plot.figure.network(NETWORK.DATA[["OG_BBSR_EGRIN"]], "OG", ...)},
   "Oryza sativa indica - (BBSR/PlantRegDB)" = function(...) {plot.figure.network(NETWORK.DATA[["OSI_BBSR_PREGDB"]], "OSI", ...)},
   "Oryza sativa japonica - (BBSR/PlantRegDB)" = function(...) {plot.figure.network(NETWORK.DATA[["OSJ_BBSR_PREGDB"]], "OSJ", ...)},
-  "Oryza sativa glaberrima - (BBSR/PlantRegDB)" = function(...) {plot.figure.network(NETWORK.DATA[["OG_BBSR_PREGDB"]], "OG", ...)}
+  "Oryza glaberrima - (BBSR/PlantRegDB)" = function(...) {plot.figure.network(NETWORK.DATA[["OG_BBSR_PREGDB"]], "OG", ...)}
 )
 
 # List of validator scripts with display name keys
@@ -44,13 +44,13 @@ FIGURE.VALIDATOR.LIST <<- list(
   "Select Figure" = validate.null,
   "Oryza sativa indica Gene Expression" = validate.gene.input.osi,
   "Oryza sativa japonica Gene Expression" = validate.gene.input.osj,
-  "Oryza sativa glaberrima Gene Expression" =  validate.gene.input.og,
+  "Oryza glaberrima Gene Expression" =  validate.gene.input.og,
   "Oryza sativa indica - (BBSR/EGRIN)" = validate.multigene.input.osi,
   "Oryza sativa japonica - (BBSR/EGRIN)" = validate.multigene.input.osj,
-  "Oryza sativa glaberrima - (BBSR/EGRIN)" = validate.multigene.input.og,
+  "Oryza glaberrima - (BBSR/EGRIN)" = validate.multigene.input.og,
   "Oryza sativa indica - (BBSR/PlantRegDB)" = validate.multigene.input.osi,
   "Oryza sativa japonica - (BBSR/PlantRegDB)" = validate.multigene.input.osj,
-  "Oryza sativa glaberrima - (BBSR/PlantRegDB)" = validate.multigene.input.og
+  "Oryza glaberrima - (BBSR/PlantRegDB)" = validate.multigene.input.og
 )
                                
 
@@ -59,13 +59,13 @@ FIGURE.DESCRIBE.PANEL.LIST <<- list(
   "Select Figure" = describe.null,
   "Oryza sativa indica Gene Expression" = function(...) {describe.expression.over.time("OSI", ...)},
   "Oryza sativa japonica Gene Expression" = function(...) {describe.expression.over.time("OSJ", ...)},
-  "Oryza sativa glaberrima Gene Expression" =  function(...) {describe.expression.over.time("OG", ...)},
+  "Oryza glaberrima Gene Expression" =  function(...) {describe.expression.over.time("OG", ...)},
   "Oryza sativa indica - (BBSR/EGRIN)" = function(...) {describe.figure.network(NETWORK.DATA[["OSI_BBSR_EGRIN"]], "OSI", ...)},
   "Oryza sativa japonica - (BBSR/EGRIN)" = function(...) {describe.figure.network(NETWORK.DATA[["OSJ_BBSR_EGRIN"]], "OSJ", ...)},
-  "Oryza sativa glaberrima - (BBSR/EGRIN)" =  function(...) {describe.figure.network(NETWORK.DATA[["OG_BBSR_EGRIN"]], "OG", ...)},
+  "Oryza glaberrima - (BBSR/EGRIN)" =  function(...) {describe.figure.network(NETWORK.DATA[["OG_BBSR_EGRIN"]], "OG", ...)},
   "Oryza sativa indica - (BBSR/PlantRegDB)" = function(...) {describe.figure.network(NETWORK.DATA[["OSI_BBSR_PREGDB"]], "OSI", ...)},
   "Oryza sativa japonica - (BBSR/PlantRegDB)" = function(...) {describe.figure.network(NETWORK.DATA[["OSJ_BBSR_PREGDB"]], "OSJ", ...)},
-  "Oryza sativa glaberrima - (BBSR/PlantRegDB)" = function(...) {describe.figure.network(NETWORK.DATA[["OG_BBSR_PREGDB"]], "OG", ...)}
+  "Oryza glaberrima - (BBSR/PlantRegDB)" = function(...) {describe.figure.network(NETWORK.DATA[["OG_BBSR_PREGDB"]], "OG", ...)}
 )
 
 get.data.plotter <<- function(display.name) {
