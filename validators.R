@@ -42,7 +42,12 @@ validate.null <- function(input.gene) {return(NULL)}
 # Process a gene name through the map file
 process.gene.input <- function(gene.name) {
   gene.name <- toupper(gene.name)
-  if (gene.name %in% GENE.MAP$Common) {return(toString(GENE.MAP[GENE.MAP$Common == gene.name, 'Systemic']))}
-  else if (gene.name %in% GENE.MAP$Systemic) {return(gene.name)}
+  
+  if (gene.name %in% GENE.META.DATA$CommonName) {
+    return(toString(GENE.META.DATA[GENE.META.DATA$CommonName == gene.name, 'gene']))
+  }
+  
+  else if (gene.name %in% GENE.META.DATA$gene) {return(gene.name)}
+  
   else {return(NULL)}
 }

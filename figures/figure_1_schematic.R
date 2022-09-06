@@ -1,6 +1,6 @@
 require(ggplot2)
 
-FIGURE.1.FILE.NAME <- "Figure_1-01.png"
+FIGURE.1.FILE.NAME <- "Figure_1.png"
 
 # Don't judge me
 plot.figure.1.schematic <- function(shiny.data, gene, input) {

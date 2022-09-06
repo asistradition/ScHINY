@@ -2,63 +2,163 @@ require(ggplot2)
 require(viridis)
 require(scales)
 
+UMAP.SETTINGS <<- list()
+
+UMAP.SETTINGS[['Experimental Replicate']] <- list(
+  meta.col='Experiment',
+  color.title="Replicate",
+  color.levels=REPLICATE.LEVELS,
+  color.labels=REPLICATE.LABELS,
+  color.palette=REPLICATE.COLORS,
+  plot.title="Experimental Replicate"
+)
+
+UMAP.SETTINGS[['Eperimental Collection Time']] <- list(
+  meta.col='Pool',
+  color.title="Expt. Time Pool",
+  color.levels=TIME.LEVELS,
+  color.labels=TIME.LABELS,
+  color.palette=TIME.COLORS,
+  plot.title="Experimental Collection Time [Pools]"
+)
+
+UMAP.SETTINGS[['Rapamycin Response Time']] <- list(
+  meta.col='program_0_time',
+  color.title="Rapa Time",
+  color.bounds=c(-10, 60),
+  color.palette="mako",
+  plot.title="Rapamycin Response Time [min]"
+)
+
+UMAP.SETTINGS[['Cell Cycle Time']] <- list(
+  meta.col='program_1_time',
+  color.title="CC Time",
+  color.bounds=c(0, 88),
+  color.palette="turbo",
+  plot.title="Cell Cycle Time [min]"
+)
+
+UMAP.SETTINGS[['Gene Expression']] <- list(
+  layer='expression',
+  color.title="Counts",
+  color.palette="viridis",
+  plot.title=" Gene Expression [counts]",
+  plot.title.paste.gene=T
+)
+
+UMAP.SETTINGS[['Denoised Expression']] <- list(
+  layer='denoised',
+  color.title="Counts",
+  color.palette="viridis",
+  plot.title=" Gene Expression [counts]",
+  plot.title.paste.gene=T
+)
+
+UMAP.COLS <<- c("UMAP_1", "UMAP_2")
+
 plot.figure.2.umap <- function(shiny.data, gene.vec, input) {
   
-  if(is.null(input$color_by) || is.null(input$conditions) || is.null(input$genotypes)) {return(NULL)}
+  if(is.null(input$color_by)) {return(NULL)}
   
-  if(input$color_by == "Condition") {
-    color_by <- "Condition"; color.title <- "Condition"; plot.title <- "Condition"
-    umap.data <- process.data.list(shiny.data, NULL)
-    }
-  else if(input$color_by == "Genotype") {
-    color_by <- "Genotype_Group"; color.title <- "Genotype"; plot.title <- "Genotype"
-    umap.data <- process.data.list(shiny.data, NULL)
-    }
-  else if(input$color_by == "Gene Expression") {
-    color_by <- validate.gene.input(gene.vec)
-    color.title <- "Log2(Expr)"
-    plot.title <- paste0("Log2(\"MultiBatch Normalized\") Gene Expression [", yeast.systemic.to.common(color_by), "]")
-    umap.data <- process.data.list(shiny.data, color_by, data.type = "logcounts", scale.data = FALSE)
+  color.by.config <- UMAP.SETTINGS[[input$color_by]]
+  
+  # Use the metadata col if that's what we're plotting
+  if (!is.null(color.by.config$meta.col)) {
+    color.by.col <- color.by.config$meta.col
+    umap.data <- META.DATA[, c(color.by.col, UMAP.COLS)]
   }
-  else {return(NULL)}
-
-  if (color_by %in% c("Condition", "Genotype_Group")) {umap.data <- umap.data[, c('Condition', 'Genotype_Group', 'UMAP1', 'UMAP2')]}
-  else {umap.data <- umap.data[, c(color_by, 'Condition', 'Genotype_Group', 'UMAP1', 'UMAP2')]}
+  else if (!is.null(color.by.config$layer)) {
+    color.by.col <- validate.gene.input(gene.vec)
+    umap.data <- META.DATA
+    umap.data[, color.by.col] <- shiny.data[[color.by.col]][[color.by.config$layer]]
+  }
   
-  umap.data <- umap.data[umap.data$Condition %in% condition.label.to.level(input$conditions),]
-  umap.data <- umap.data[umap.data$Genotype_Group %in% genotype.label.to.level(input$genotypes),]
+  # Add gene name to title if that flag is set
+  if (!is.null(color.by.config$plot.title.paste.gene)) {
+    plot.title <- paste0(yeast.systemic.to.common(color.by.col), color.by.config$plot.title)
+  }
+  else {
+    plot.title <- color.by.config$plot.title
+  }
   
-  ## Create base UMAP as a point plot ##
-  umap.data <- umap.data[sample(nrow(umap.data)),]
-  umap.plt <- ggplot(umap.data, aes(x=UMAP1, y=UMAP2)) + 
-    geom_point(aes_string(color=color_by), alpha=UMAP.ALPHA, size=UMAP.SIZE) + 
-    theme_classic() + labs(color=color.title) +
-    theme(panel.grid.major=element_blank(), panel.grid.minor=element_blank(),
-          text=element_text(size=LABEL.FONT.SIZE), plot.title = element_text(size=TITLE.FONT.SIZE, face="bold", hjust=0.5)) +
+  ## Create base UMAP data frame and shuffle it to prevent overplotting ##
+  umap.data <- as.data.frame(umap.data[sample(nrow(umap.data)), ])
+  
+  ## Factorize if needed ##
+  if('color.levels' %in% names(color.by.config)) {
+    umap.data[, color.by.col] <- as.factor(umap.data[, color.by.col])
+  }
+  
+  ## Build the core of the plot ##
+  umap.plt <- ggplot(umap.data, aes(x=UMAP_1, y=UMAP_2)) + 
+    geom_point(aes_string(color=color.by.col), alpha=UMAP.ALPHA, size=UMAP.SIZE) + 
+    theme_classic() +
+    labs(color=color.by.config$color.title) +
+    theme(panel.grid.major=element_blank(),
+          panel.grid.minor=element_blank(),
+          text=element_text(size=LABEL.FONT.SIZE),
+          plot.title = element_text(size=TITLE.FONT.SIZE, face="bold", hjust=0.5)) +
     labs(title = plot.title)
   
   ## Add color scale ##
   
-  if(is.null(input$color_by) || input$color_by == "Condition") {umap.plt <- umap.plt + 
-    scale_color_manual(labels = CONDITION.LABELS, breaks = CONDITION.LEVELS, values = CONDITION.COLORS) +
-    guides(color = guide_legend(override.aes = list(size=6, alpha=1), reverse = TRUE))}
-  else if(input$color_by == "Genotype") {umap.plt <- umap.plt + 
-    scale_color_manual(labels = GENOTYPE.LABELS, breaks = GENOTYPE.LEVELS, values = GENOTYPE.COLORS) +
-    guides(color = guide_legend(override.aes = list(size=6, alpha=1), reverse = TRUE))}
-  else if(input$color_by == "Gene Expression") {
-    scale.max <- quantile(umap.data[, color_by], probs = 0.99)[[1]]
-    umap.plt <- umap.plt + scale_colour_viridis(option='B', limits = c(0,scale.max), oob = squish)
+  # Use manual scale
+  if('color.levels' %in% names(color.by.config)) {
+    umap.plt <- umap.plt + 
+      scale_color_manual(labels = color.by.config$color.labels,
+                         breaks = color.by.config$color.levels,
+                         values = color.by.config$color.palette) +
+    guides(color = guide_legend(override.aes = list(size=6, alpha=1)))}
+  
+  # Use the defined limits for a viridis scale
+  else if('color.bounds' %in% names(color.by.config)) {
+    umap.plt <- umap.plt + 
+      scale_colour_viridis(
+        limits=color.by.config$color.bounds,
+        option=color.by.config$color.palette,
+        oob=squish)
   }
+  
+  # Make our own 0.01 / 0.99 limits for a viridis scale
+  else {
+    
+    lims <- quantile(umap.data[, color.by.col], c(0.01, 0.99))
+    if (lims[1] > 0) {lims[1] <- 0}
+    
+    if('color.log.scale' %in% names(color.by.config)) {
+      umap.plt <- umap.plt + 
+        scale_colour_viridis(
+          limits=lims,
+          option=color.by.config$color.palette,
+          trans = scales::pseudo_log_trans(sigma = 1, base=2),
+          oob=squish)      
+    }
+    else {
+      umap.plt <- umap.plt + 
+        scale_colour_viridis(
+          limits=lims,
+          option=color.by.config$color.palette,
+          oob=squish)
+    }
+  }
+
   return(umap.plt)
 }
 
 exp.panel.figure.2.umap <- function() {
   list(selectInput(inputId = 'color_by',
                    label = "Color By",
-                   choices = c("Condition", "Genotype", "Gene Expression"),
-                   selected = "Condition"))
+                   choices = c(
+                     "Eperimental Collection Time",
+                     "Experimental Replicate",
+                     "Rapamycin Response Time",
+                     "Cell Cycle Time",
+                     "Gene Expression",
+                     "Denoised Expression"
+                   ),
+                   selected = "Eperimental Collection Time"))
 }
 
 cond.panel.figure.2.umap <- function(...) {cond.panel.standard(selected.conditions = CONDITION.LABELS, selected.genotypes = GENOTYPE.LABELS)}
 
-describe.figure.2.umap <- function(...) {"Uniform Manifold Approximation and Projection (UMAP) projection of log-transformed and batch-normalized single-cell data"}
+describe.figure.2.umap <- function(...) {"Uniform Manifold Approximation and Projection (UMAP) projection"}
