@@ -8,14 +8,9 @@ library(shiny)
 
 # Load plotting stuff
 library(ggplot2)
-library(ggridges)
-library(RColorBrewer)
-library(cowplot)
 library(scales)
 library(viridis)
-library(network)
-library(sna)
-library(GGally)
+library(patchwork)
 
 # Load tidyverse stuff
 library(dplyr)
@@ -27,6 +22,10 @@ load.tsv.gz <- function(file.name, index.name='gene') {
   if('...1' %in% colnames(x)) {
     x[index.name] <- x['...1']
     x['...1'] <- NULL
+  } 
+  else if('X1' %in% colnames(x)) {
+    x[index.name] <- x['X1']
+    x['X1'] <- NULL
   }
   return(x)
 }
@@ -47,7 +46,7 @@ if(!exists('FIGURE.SELECT.LABEL')) {FIGURE.SELECT.LABEL <<- "Figure"}
 if(!exists('DEFAULT.FIGURE')) {DEFAULT.FIGURE <<- "Select Figure"}
 
 # Set plot parameters
-if(!exists('UMAP.ALPHA')) {UMAP.ALPHA <<- 0.5}
+if(!exists('UMAP.ALPHA')) {UMAP.ALPHA <<- 0.25}
 if(!exists('UMAP.SIZE')) {UMAP.SIZE <<- 1}
 if(!exists('LABEL.FONT.SIZE')) {LABEL.FONT.SIZE <<- 14}
 if(!exists('TITLE.FONT.SIZE')) {TITLE.FONT.SIZE <<- 16}
@@ -59,7 +58,26 @@ if(!exists('META.DATA')) {
 if(!exists('GENE.META.DATA')) {
   GENE.META.DATA <<- load.tsv.gz(file.path(DATA.PATH, GENE.META.DATA.FILE))
 }
-if(!exists('DATA.TYPES')) {DATA.TYPES <<- c('counts', 'logcounts', 'activity')}
+
+if(!exists('PROGRAMS')) {
+  PROGRAMS <<- list(
+    '0'='program_0_time',
+    '1'='program_1_time'
+  )
+}
+if(!exists('PROGRAM.TIME.LIM')) {
+  PROGRAM.TIME.LIM <<- list(
+    '0'= c(-10, 65),
+    '1'= c(0, 88)
+  )
+}
+if(!exists('PROGRAM.NAMES')) {
+  PROGRAM.NAMES <<- list(
+    '0'= 'Rapa. Response',
+    '1'= 'Cell Cycle'
+  )
+}
+
 if(!exists('MAX.CONCURRENT.LOADED')) {MAX.CONCURRENT.LOADED <<- 50}
 
 example.data <- readRDS("data/YEL009C.rds")
@@ -81,7 +99,6 @@ if(!exists('TIME.COLORS')) {
 if(!exists('TIME.LEVELS')) {
   TIME.LEVELS <<- c(1, 2, 3, 4, 5, 6, 7, 8)
 }
-
 if(!exists('TIME.LABELS')) {
   TIME.LABELS <<- c("-20/-10", "-10/0", "0/10", "10/20", "20/30", "30/40", "40/50", "50/60")
 }
@@ -93,9 +110,19 @@ if(!exists('REPLICATE.COLORS')) {
 if(!exists('REPLICATE.LEVELS')) {
   REPLICATE.LEVELS <<- c(1, 2)
 }
-
 if(!exists('REPLICATE.LABELS')) {
   REPLICATE.LABELS <<- c("Expt. 1", "Expt. 2")
+}
+
+# Set levels, labels, and colors for categorical variable CELLCYCLE
+if(!exists('CC.COLORS')) {
+  CC.COLORS <<- c('#66c2a5', '#8da0cb', '#a6d854', '#e5c494', '#b3b3b3')
+}
+if(!exists('CC.LEVELS')) {
+  CC.LEVELS <<- c("M-G1", "G1", "S", "G2", "M")
+}
+if(!exists('CC.LABELS')) {
+  CC.LABELS <<- c("M-G1", "G1", "S", "G2", "M")
 }
 
 # Load the figure management script (which will bring in the figure scripts)
@@ -121,6 +148,37 @@ get.gene.data <- function(data.list, genes.to.load) {
   if (length(data.list) > MAX.CONCURRENT.LOADED) {data.list <- data.list[genes.to.load]}
   
   return(data.list)
+}
+
+get.gene.time <- function(gene.name) {
+  prog <- GENE.META.DATA[GENE.META.DATA$gene == gene.name, "programs", drop=T]
+  return(META.DATA[, PROGRAMS[[toString(prog)]], drop=T])
+}
+
+get.gene.time.limits <- function(gene.name) {
+  prog <- GENE.META.DATA[GENE.META.DATA$gene == gene.name, "programs", drop=T]
+  return(PROGRAM.TIME.LIM[[toString(prog)]])
+}
+
+get.gene.time.name <- function(gene.name) {
+  prog <- GENE.META.DATA[GENE.META.DATA$gene == gene.name, "programs", drop=T]
+  return(PROGRAM.NAMES[[toString(prog)]])
+}
+
+find.data.limits <- function(data, q=c(0.01, 0.99)) {
+  lims <- quantile(data, q)
+  
+  # If the lower limit is > 0 bound it at zero
+  if (lims[1] > 0) {lims[1] <- 0}
+  
+  # If the lower limit is negative and the upper limit is positive
+  # Bound on abs
+  if (lims[1] < 0 & lims[2] > 0) {
+    lims[1] <- -1 * max(abs(lims))
+    lims[2] <- max(abs(lims))
+  }
+  
+  return(lims)
 }
 
 ## Also here are several common functions for converting between human-readable labels and labels within the data ##

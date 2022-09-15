@@ -7,6 +7,8 @@ require(shiny)
 # Load the figure scripts
 source(file.path(FIGURE.PATH, "figure_1_schematic.R"))
 source(file.path(FIGURE.PATH, "figure_2_umap.R"))
+source(file.path(FIGURE.PATH, "figure_3_scatter.R"))
+source(file.path(FIGURE.PATH, "figure_4_aggregated.R"))
 
 # Load the validator functions
 source("validators.R")
@@ -29,27 +31,37 @@ cond.panel.standard <- function(selected.conditions=NULL, selected.genotypes=NUL
 # List of figure plot functions with display name keys
 FIGURE.PLOTTER.LIST <<- list("Select Figure" = plot.null, 
                              "Figure 1 - Schematic" = plot.figure.1.schematic,
-                             "Figure 2 - UMAP" = plot.figure.2.umap)
+                             "Figure 2 - UMAP" = plot.figure.2.umap,
+                             "Figure 3 - Scatter" = plot.figure.3.scatter,
+                             "Figure 4 - Averages Over Time" = plot.figure.4.aggregate)
 
 # List of figure experiment panel functions with display name keys
 FIGURE.EXP.PANEL.LIST <<- list("Select Figure" = panel.null,
                                "Figure 1 - Schematic" = exp.panel.figure.1.schematic,
-                               "Figure 2 - UMAP" = exp.panel.figure.2.umap)
+                               "Figure 2 - UMAP" = exp.panel.figure.2.umap,
+                               "Figure 3 - Scatter" = exp.panel.figure.3.scatter,
+                               "Figure 4 - Averages Over Time" = exp.panel.figure.4.aggregate)
 
 # List of figure condition panel functions with display name keys
 FIGURE.COND.PANEL.LIST <<- list("Select Figure" = panel.null,
                                 "Figure 1 - Schematic" = panel.null,
-                                "Figure 2 - UMAP" = panel.null)
+                                "Figure 2 - UMAP" = panel.null,
+                                "Figure 3 - Scatter" = panel.null,
+                                "Figure 4 - Averages Over Time" = panel.null)
 
 # List of validator scripts with display name keys
 FIGURE.VALIDATOR.LIST <<- list("Select Figure" = validate.null,
                                "Figure 1 - Schematic" = validate.null,
-                               "Figure 2 - UMAP" = process.gene.input)
+                               "Figure 2 - UMAP" = process.gene.input,
+                               "Figure 3 - Scatter" = process.gene.input,
+                               "Figure 4 - Averages Over Time" = process.gene.input)
 
 # List of figure experiment panel functions with display name keys
 FIGURE.DESCRIBE.PANEL.LIST <<- list("Select Figure" = describe.null,
                                     "Figure 1 - Schematic" = describe.figure.1.schematic,
-                                    "Figure 2 - UMAP" = describe.figure.2.umap)
+                                    "Figure 2 - UMAP" = describe.figure.2.umap,
+                                    "Figure 3 - Scatter" = describe.figure.3.scatter,
+                                    "Figure 4 - Averages Over Time" = describe.figure.4.aggregate)
 
 # Turn a display name into a function to generate a plot
 get.data.plotter <<- function(display.name) {
